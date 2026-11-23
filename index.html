@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>똑똑! Knock-Knock · 보건실 접수 도우미</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Ccircle cx='125' cy='150' r='95' fill='%230F766E'/%3E%3Cpath d='M125 99V201M74 150H176' stroke='%23fff' stroke-width='32' stroke-linecap='round'/%3E%3Cpath d='M216 82A120 120 0 0 1 216 218M246 57A150 150 0 0 1 246 243' fill='none' stroke='%23E07A3F' stroke-width='16' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
+<link id="mf" rel="manifest" href="teacher.webmanifest">
+<link id="ati" rel="apple-touch-icon" href="icons/teacher-192.png">
+<meta id="amt" name="apple-mobile-web-app-title" content="똑똑! 선생님">
+<meta name="theme-color" content="#0F766E">
+<style>
+:root{--teal:#0F766E;--teal-d:#0B5953;--teal-s:#E6F2F0;--ink:#1A2421;--muted:#5B6763;--line:#DCE3E0;--bg:#F5F7F6;--or:#C2410C;--or-d:#9A3412;--or-s:#FDEEE6;--or-l:#F2C9B5;--yel-s:#FFF7E0;--yel-l:#EAD38A;--yel-d:#7A5A00}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',system-ui,sans-serif;font-size:16px}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+a{color:var(--teal)}a:hover{color:var(--teal-d)}
+h1,h2,h3{margin:0}
+.muted{color:var(--muted)}.small{font-size:14px}.xs{font-size:13px}.b{font-weight:700}
+.btn{min-height:44px;padding:0 18px;border-radius:12px;border:0;background:var(--teal);color:#fff;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn:hover{background:var(--teal-d);color:#fff}
+.btn.ghost{background:#fff;color:var(--ink);border:2px solid var(--line)}.btn.ghost:hover{border-color:#B8C6C1;color:var(--ink)}
+.btn.line{background:#fff;color:var(--teal);border:2px solid var(--teal)}
+.btn.warn{background:var(--or)}.btn.warn:hover{background:var(--or-d)}
+.btn:disabled{background:var(--line);color:var(--muted);cursor:not-allowed;border:0}
+.btn.big{min-height:60px;font-size:20px;border-radius:16px}
+.link{background:none;border:0;padding:4px 0;color:var(--teal);font-weight:700;cursor:pointer}
+.chip{min-height:44px;padding:6px 16px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:700;cursor:pointer;text-align:left}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.chip.drug{color:var(--or-d);border-color:var(--or-l)}.chip.drug.on{background:var(--or);border-color:var(--or);color:#fff}
+.chip small{display:block;font-size:12px;font-weight:500;opacity:.85}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.between{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;justify-content:space-between}
+.check{display:flex;align-items:flex-start;gap:10px;flex-wrap:nowrap;line-height:1.45;cursor:pointer}.check input[type=checkbox]{flex-shrink:0;width:18px;height:18px;margin:2px 0 0;accent-color:var(--teal)}
+.tag{display:inline-block;font-size:13px;padding:3px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--line)}
+.tag.t{background:var(--teal-s);border-color:var(--teal-s);color:var(--teal-d);font-weight:700}
+.note{border-radius:12px;padding:12px 14px;font-size:15px;line-height:1.5}
+.note.or{background:var(--or-s);color:var(--or-d)}.note.t{background:var(--teal-s);color:var(--teal-d)}.note.g{background:var(--bg)}.note.y{background:var(--yel-s);color:var(--yel-d);border:1px solid var(--yel-l)}
+input[type=text],input[type=number],input[type=time],input[type=date],input[type=password],select,textarea{height:44px;border-radius:10px;border:1px solid var(--line);padding:0 12px;background:#fff;min-width:0}
+textarea{height:auto;padding:10px 12px;line-height:1.5}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:700;color:var(--muted)}
+label.f input,label.f select,label.f textarea{font-weight:400;color:var(--ink);font-size:16px}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{text-align:left;color:var(--muted);font-weight:700;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td{padding:9px 8px;border-bottom:1px solid #EEF2F0;vertical-align:top}
+.scroll{overflow-x:auto}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}.tile .v{font-size:26px;font-weight:700}
+/* teacher shell */
+.top{background:#fff;border-bottom:1px solid var(--line)}
+.top .in{max-width:1600px;margin:0 auto;padding:10px 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:900;font-size:20px;text-decoration:none;color:var(--ink)}
+.nav{display:flex;flex-wrap:wrap;gap:4px;font-size:15px}
+.nav a{padding:8px 12px;border-radius:10px;color:var(--ink);text-decoration:none}
+.nav a.on{background:var(--teal-s);color:var(--teal-d);font-weight:700}
+.wrap{max-width:1600px;margin:0 auto;padding:22px 24px 60px}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.c-q{flex:1 1 260px;min-width:0}.c-w{flex:999 1 560px;min-width:0}.c-h{flex:1 1 280px;min-width:0}
+.qcard{background:#fff;border:2px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;width:100%}
+.qcard.cur{border-color:var(--teal)}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:44px;height:44px;border-radius:10px;border:2px solid var(--line);background:#fff;font-size:20px;font-weight:700;cursor:pointer}
+.banner{background:var(--yel-s);border-bottom:1px solid var(--yel-l);color:var(--yel-d);font-size:14px;text-align:center;padding:6px 12px}
+/* kiosk */
+.k{min-height:100vh;display:flex;flex-direction:column;background:var(--bg)}
+.k-head{height:76px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:#fff;border-bottom:1px solid var(--line)}
+.k-steps{display:flex;gap:26px;font-size:16px}.k-steps span{padding:6px 0;color:var(--muted)}.k-steps span.on{color:var(--teal);font-weight:700;border-bottom:3px solid var(--teal)}
+.k-main{flex:1;display:flex;gap:28px;padding:26px 32px;min-height:0}
+.k-foot{display:flex;justify-content:flex-end;gap:14px;padding:0 32px 10px;font-size:13px}
+.k-foot button{background:none;border:0;color:var(--muted);cursor:pointer;padding:6px}
+.kbtn{border-radius:16px;font-size:24px;font-weight:700;cursor:pointer;background:#fff;border:2px solid var(--line);color:var(--ink)}
+.kbtn.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.knum{height:84px;border-radius:14px;cursor:pointer;background:#fff;border:2px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0}
+.knum b{font-size:22px;line-height:1.1}.knum span{font-size:16px}
+.knum.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.body{position:relative;width:230px;height:525px}
+.part{position:absolute;border:0;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;background:#D5DDDA;color:#3F4A47}
+.part.on{background:var(--teal);color:#fff}
+.call{min-height:100vh;background:var(--teal);color:#fff;display:flex;flex-direction:column;padding:36px 52px}
+/* 마우스 올렸을 때 */
+.btn,.chip,.kbtn,.knum,.part,.qcard,.nav a,.link,.stepper button,.k-foot button,.card,.tag,table.t tbody tr td{transition:background-color .12s,border-color .12s,color .12s,box-shadow .12s,transform .12s}
+[data-tip]{position:relative}
+.part[data-tip]{position:absolute}
+@media (hover:hover){
+  .btn:not(:disabled):hover{box-shadow:0 2px 8px rgba(15,118,110,.22)}
+  .btn.warn:not(:disabled):hover{box-shadow:0 2px 8px rgba(194,65,12,.25)}
+  .btn.line:hover{background:var(--teal-s);color:var(--teal-d)}
+  .chip:not(.on):hover{border-color:#8FBFB7;background:var(--teal-s)}
+  .chip.on:hover{background:var(--teal-d);border-color:var(--teal-d)}
+  .chip.drug:not(.on):hover{border-color:var(--or);background:var(--or-s)}
+  .chip.drug.on:hover{background:var(--or-d);border-color:var(--or-d)}
+  .kbtn:not(.on):not(:disabled):hover,.knum:not(.on):hover{border-color:#8FBFB7;background:var(--teal-s)}
+  .kbtn.on:hover,.knum.on:hover{background:var(--teal-d);border-color:var(--teal-d)}
+  .part:not(.on):hover{background:#BCC9C5;color:var(--ink)}
+  .part.on:hover{background:var(--teal-d)}
+  .qcard:not(.cur):hover{border-color:#8FBFB7;box-shadow:0 2px 10px rgba(26,36,33,.07)}
+  .nav a:not(.on):hover{background:var(--bg);color:var(--ink)}
+  .link:hover{text-decoration:underline;text-underline-offset:3px}
+  .stepper button:hover{border-color:#8FBFB7;background:var(--teal-s)}
+  .k-foot button:hover{color:var(--ink)}
+  a.card:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(15,118,110,.12)}
+  table.t tbody tr:hover td{background:#F7FAF9}
+  .heat td[data-tip]:hover{outline:2px solid var(--ink);outline-offset:-2px}
+  .bar:hover .fl{background:var(--teal-d)}
+  .monthbar:hover .mb{background:#5BAEA1}
+  .monthbar[aria-pressed=true]:hover .mb{background:var(--teal-d)}
+  [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;font-weight:500;line-height:1.4;padding:6px 10px;border-radius:8px;white-space:nowrap;z-index:40;pointer-events:none;text-align:left}
+  [data-tip-pos=bottom]:hover::after{bottom:auto;top:calc(100% + 8px)}
+  [data-tip-pos=left]:hover::after{left:auto;right:0;transform:none}
+}
+@media (max-width:900px){.k-main{flex-direction:column}.k-steps{display:none}}
+@media print{.noprint{display:none!important}body,html{background:#fff}.wrap{padding:0;max-width:none}.card{border:0;padding:0}}
+@page{size:A4 landscape;margin:12mm}
+.printsheet{background:#fff;color:#111}
+.printsheet table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.4}
+.printsheet th,.printsheet td{border:1px solid #555;padding:6px 5px}
+.printsheet th{background:#EEF2F0}
+.modalbg{position:fixed;inset:0;background:rgba(26,36,33,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal{background:#fff;border-radius:18px;padding:22px 24px;max-width:460px;width:100%;display:flex;flex-direction:column;gap:14px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:15px;z-index:60}
+.heat td{text-align:center;border-radius:4px;font-variant-numeric:tabular-nums}
+.bar{display:grid;grid-template-columns:130px minmax(0,1fr) 56px;align-items:center;gap:10px;font-size:14px}
+.bar .tr{height:14px;background:#EEF2F0;border-radius:0 4px 4px 0}.bar .fl{height:14px;background:var(--teal);border-radius:0 4px 4px 0}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="overlay"></div>
+<script>
+'use strict';
+const VERSION = '0.2.0';
+// 만든 사람 (공동 작업) — 이어 만드는 선생님 이름을 이 목록에 더하면 첫 화면·설정 아래에 함께 보여요
+const CREDITS = ['음악적체육인'];
+const creditText = () => '만든 사람 ' + CREDITS.join(' · ');
+const KEY = 'knock.v1';
+
+/* ---------- 작은 도구 ---------- */
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const now = () => Date.now();
+const pad = (n) => String(n).padStart(2, '0');
+const hm = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const ymd = (t) => { const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const kdate = (t) => { const d = new Date(t); return d.getFullYear() + '. ' + (d.getMonth() + 1) + '. ' + d.getDate() + '.'; };
+const kexp = (s) => { if (!s) return ''; const [y, m, d] = s.split('-'); return y + '. ' + Number(m) + '. ' + Number(d) + '.'; };
+const WD = ['일', '월', '화', '수', '목', '금', '토'];
+const schoolYear = (t) => { const d = new Date(t); return d.getMonth() + 1 >= 3 ? d.getFullYear() : d.getFullYear() - 1; };
+const mask = (n) => { n = String(n || ''); if (n.length <= 1) return n; if (n.length === 2) return n[0] + '*'; return n[0] + '*'.repeat(n.length - 2) + n[n.length - 1]; };
+const daysLeft = (exp) => Math.round((new Date(exp + 'T00:00:00') - new Date(ymd(now()) + 'T00:00:00')) / 86400000);
+const sum = (a) => a.reduce((x, y) => x + y, 0);
+const uniq = (a) => [...new Set(a)];
+
+const SYMBOL = (size) => `<svg width="${size}" height="${size}" viewBox="0 0 300 300" aria-hidden="true"><circle cx="125" cy="150" r="95" fill="#0F766E"/><path d="M125 99V201M74 150H176" stroke="#fff" stroke-width="32" stroke-linecap="round"/><path d="M216 82A120 120 0 0 1 216 218M246 57A150 150 0 0 1 246 243" fill="none" stroke="#E07A3F" stroke-width="16" stroke-linecap="round"/></svg>`;
+
+/* ---------- 기본 자료 ---------- */
+const SYM = {
+  head: '머리가 아파요', fever: '열이 나요', dizzy: '어지러워요', nose: '코피가 나요', eye: '눈이 아파요', tooth: '이가 아파요',
+  throat: '목 안이 아파요', cough: '기침·콧물이 나요', breath: '숨쉬기 힘들어요', heart: '가슴이 두근거려요',
+  stomach: '배가 아파요', nausea: '속이 메스꺼워요', diarrhea: '설사를 해요', period: '생리통',
+  bruise: '부딪혔어요', cut: '긁히거나 베였어요', sprain: '삐었어요', muscle: '근육이 아파요', bug: '벌레에 물렸어요', burn: '데었어요', etc: '기타'
+};
+const SYM_SHORT = { head: '두통', fever: '열', dizzy: '어지러움', nose: '코피', eye: '눈', tooth: '치통', throat: '목 아픔', cough: '기침·콧물', breath: '호흡 곤란', heart: '두근거림', stomach: '복통', nausea: '메스꺼움', diarrhea: '설사', period: '생리통', bruise: '부딪힘', cut: '긁힘·베임', sprain: '삠', muscle: '근육통', bug: '벌레 물림', burn: '화상', etc: '기타' };
+const BYPART = {
+  face: ['head', 'fever', 'dizzy', 'nose', 'eye', 'tooth', 'bruise', 'cut'],
+  headBack: ['head', 'dizzy', 'bruise', 'cut'],
+  neck: ['throat', 'cough', 'fever', 'muscle', 'bruise'],
+  chest: ['breath', 'cough', 'heart', 'bruise'],
+  belly: ['stomach', 'nausea', 'diarrhea', 'period', 'bruise'],
+  back: ['bruise', 'muscle', 'sprain'],
+  hip: ['bruise', 'muscle'],
+  limb: ['bruise', 'cut', 'sprain', 'muscle', 'bug', 'burn'],
+  handFoot: ['bruise', 'cut', 'sprain', 'bug', 'burn']
+};
+const PARTS_F = [
+  ['f-head', '얼굴', 65, 6, 70, 70, 35], ['f-neck', '목', 88, 78, 24, 16, 4], ['f-chest', '가슴', 55, 96, 90, 62, 14], ['f-belly', '배', 58, 160, 84, 100, 14],
+  ['f-arm-r', '오른팔', 24, 98, 28, 142, 14], ['f-arm-l', '왼팔', 148, 98, 28, 142, 14], ['f-hand-r', '오른손', 22, 244, 32, 32, 16], ['f-hand-l', '왼손', 146, 244, 32, 32, 16],
+  ['f-leg-r', '오른다리', 60, 264, 38, 158, 16], ['f-leg-l', '왼다리', 102, 264, 38, 158, 16], ['f-foot-r', '오른발', 54, 426, 44, 24, 12], ['f-foot-l', '왼발', 102, 426, 44, 24, 12]
+];
+const PARTS_B = [
+  ['b-head', '뒤통수', 65, 6, 70, 70, 35], ['b-neck', '목 뒤', 88, 78, 24, 16, 4], ['b-back', '등', 55, 96, 90, 74, 14], ['b-waist', '허리', 58, 172, 84, 40, 12], ['b-hip', '엉덩이', 58, 214, 84, 46, 16],
+  ['b-arm-l', '왼팔(뒤)', 24, 98, 28, 142, 14], ['b-arm-r', '오른팔(뒤)', 148, 98, 28, 142, 14], ['b-hand-l', '왼손등', 22, 244, 32, 32, 16], ['b-hand-r', '오른손등', 146, 244, 32, 32, 16],
+  ['b-leg-l', '왼다리(뒤)', 60, 264, 38, 186, 16], ['b-leg-r', '오른다리(뒤)', 102, 264, 38, 186, 16]
+];
+const PART_LABEL = Object.fromEntries([...PARTS_F, ...PARTS_B].map((p) => [p[0], p[1]]));
+const partShort = (label) => label.replace(/\(뒤\)/, '').replace(/^(오른|왼)/, '').replace('뒤통수', '머리').replace('목 뒤', '목').replace('손등', '손');
+const partGroup = (id) => id === 'f-head' ? 'face' : id === 'b-head' ? 'headBack' : id.includes('neck') ? 'neck' : id === 'f-chest' ? 'chest' : id === 'f-belly' ? 'belly' : (id === 'b-back' || id === 'b-waist') ? 'back' : id === 'b-hip' ? 'hip' : (id.includes('hand') || id.includes('foot')) ? 'handFoot' : 'limb';
+const CATS = ['근골격계', '피부·외상', '소화기계', '호흡기계', '신경계', '눈·귀·코', '비뇨생식기계', '구강', '순환기계', '기타'];
+const DEFAULT_SYMCAT = { bruise: '근골격계', sprain: '근골격계', muscle: '근골격계', cut: '피부·외상', bug: '피부·외상', burn: '피부·외상', stomach: '소화기계', nausea: '소화기계', diarrhea: '소화기계', fever: '호흡기계', cough: '호흡기계', throat: '호흡기계', breath: '호흡기계', head: '신경계', dizzy: '신경계', nose: '눈·귀·코', eye: '눈·귀·코', period: '비뇨생식기계', tooth: '구강', heart: '순환기계', etc: '기타' };
+const DEFAULT_CARE = {
+  bruise: ['냉찜질(아이싱)', '파스 붙이기', '압박붕대', '올리고 안정', '관찰'], sprain: ['냉찜질(아이싱)', '압박붕대', '부목 고정', '안정', '관찰'], muscle: ['찜질', '스트레칭 안내', '파스 붙이기'],
+  cut: ['소독', '밴드', '거즈 드레싱'], bug: ['냉찜질', '관찰'], burn: ['흐르는 물로 식히기', '화상 드레싱'],
+  head: ['휴식', '침대 안정'], fever: ['체온 측정', '침대 안정', '보호자 연락'], dizzy: ['침대 안정', '맥박 측정', '물 마시기'],
+  nose: ['지혈', '냉찜질'], eye: ['눈 씻기', '관찰'], tooth: ['입 헹구기', '냉찜질'], throat: ['가글', '따뜻한 물'], cough: ['체온 측정', '마스크'],
+  breath: ['안정', '보호자 연락', '응급 연락'], heart: ['안정', '맥박 측정'], stomach: ['찜질팩', '화장실 안내', '침대 안정'], nausea: ['침대 안정', '물 마시기'],
+  diarrhea: ['화장실 안내', '수분 섭취 안내'], period: ['찜질팩', '침대 안정'], etc: ['관찰']
+};
+const COMMON_CARE = ['체온 측정', '침대 안정', '담임 연락', '보호자 연락'];
+const RESULTS = [['back', '교실 복귀'], ['restback', '안정 후 복귀'], ['early', '조퇴(보호자 인계)'], ['hospital', '병원 진료 권고'], ['transfer', '병원 이송']];
+const RESULT_LABEL = Object.fromEntries(RESULTS);
+const SINCE = [['now', '방금'], ['today', '오늘 아침부터'], ['before', '어제부터']];
+const DEFAULT_PERIODS = [
+  { key: '1', label: '1교시', start: '09:00', end: '09:40' }, { key: '2', label: '2교시', start: '09:50', end: '10:30' }, { key: '3', label: '3교시', start: '10:50', end: '11:30' },
+  { key: '4', label: '4교시', start: '11:40', end: '12:20' }, { key: 'L', label: '점심', start: '12:20', end: '13:20' }, { key: '5', label: '5교시', start: '13:20', end: '14:00' }, { key: '6', label: '6교시', start: '14:10', end: '14:50' }
+];
+const PLACES = [['auto', '일정대로 (자동)'], ['room', '보건실'], ['staff', '교무실'], ['meeting', '회의 중'], ['trip', '출장'], ['round', '교내 순회']];
+const PLACE_TEXT = { staff: '교무실에 계세요', meeting: '회의 중이에요', trip: '오늘은 출장 중이에요', round: '학교 안을 돌고 계세요' };
+const DEFAULT_DRUGS = () => [
+  { id: 'acet', name: '아세트아미노펜 정', kind: '해열진통제', unit: '정', min: 20, counted: true, syms: ['head', 'fever', 'period'], lots: [] },
+  { id: 'ibu', name: '이부프로펜 시럽', kind: '해열진통제', unit: '병', min: 1, counted: false, syms: ['fever', 'head'], lots: [] },
+  { id: 'keto', name: '소염진통 패치', kind: '파스', unit: '매', min: 10, counted: true, syms: ['bruise', 'sprain', 'muscle'], lots: [] },
+  { id: 'gel', name: '소염진통 겔', kind: '바르는 약', unit: '개', min: 2, counted: false, syms: ['bruise', 'sprain', 'muscle'], lots: [] },
+  { id: 'antacid', name: '제산제 현탁액', kind: '위장약', unit: '포', min: 10, counted: true, syms: ['stomach', 'nausea'], lots: [] },
+  { id: 'digest', name: '소화제 정', kind: '위장약', unit: '정', min: 10, counted: true, syms: ['stomach'], lots: [] },
+  { id: 'oint', name: '상처 연고', kind: '바르는 약', unit: '개', min: 2, counted: false, syms: ['cut', 'burn'], lots: [] },
+  { id: 'povi', name: '포비돈 소독액', kind: '소독약', unit: '병', min: 1, counted: false, syms: ['cut'], lots: [] }
+];
+const newCode = () => String(Math.floor(100000 + Math.random() * 900000));
+const blankState = () => ({
+  v: 1, school: { name: '', year: schoolYear(now()), code: newCode() }, roster: [], visits: [], drugs: DEFAULT_DRUGS(), stockLog: [],
+  careCustom: {}, symCat: { ...DEFAULT_SYMCAT }, periods: DEFAULT_PERIODS.map((p) => ({ ...p })), schedule: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+  override: { place: 'auto', until: '' }, settings: { maskName: false, chime: true, warnDays: 60, pin: '', purMap: null }, archives: [], call: null
+});
+
+/* ---------- 저장 ---------- */
+let STORAGE_OK = true;
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (!raw) return null; const s = JSON.parse(raw); return Object.assign(blankState(), s); } catch (e) { STORAGE_OK = false; return null; }
+}
+let S = load() || blankState();
+if (!S.school.code) { S.school.code = newCode(); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { STORAGE_OK = false; toast('이 브라우저에는 저장할 수 없어요. 창을 닫으면 사라져요'); } }
+window.addEventListener('storage', (e) => { if (e.key === KEY && e.newValue) { S = Object.assign(blankState(), JSON.parse(e.newValue)); render(); } });
+
+/* ---------- 화면 상태 ---------- */
+const K = { step: 'who', grade: null, cls: null, sid: null, parts: {}, sym: {}, since: 'now', doneAt: 0, lastVid: null, chimed: null, sound: false };
+const T = { cur: null, f: {}, more: false, walk: null, histSid: null, histTab: 'all', statYear: null, statGrade: 'all', statMonth: null, printDate: ymd(now()), intake: 'one', form: { drug: '', qty: '', exp: '', loc: '' }, pur: null, editDrug: null, newDrug: null, ye: { typed: '', noPhone: true }, rosterPreview: null, careSym: 'bruise' };
+
+/* ---------- 사람·기록 찾기 ---------- */
+const student = (sid) => S.roster.find((s) => s.id === sid);
+const snap = (st) => ({ grade: st.grade, cls: st.cls, num: st.num, name: st.name });
+const clsText = (s) => s ? `${s.grade}-${s.cls}-${pad(s.num)}` : '';
+const todayVisits = () => { const d = ymd(now()); return S.visits.filter((v) => ymd(v.at) === d); };
+const queue = () => todayVisits().filter((v) => v.status === 'wait' || v.status === 'called').sort((a, b) => a.at - b.at);
+const careList = (sym) => uniq([...(DEFAULT_CARE[sym] || []), ...(S.careCustom[sym] || [])]);
+const drugTotal = (d) => sum(d.lots.map((l) => l.qty));
+function drugAlerts() {
+  const out = [];
+  S.drugs.forEach((d) => {
+    const tot = drugTotal(d);
+    if (d.min > 0 && tot < d.min) out.push({ kind: 'low', drug: d, text: `${d.name} ${tot}${d.unit} 남음 (최소 ${d.min}${d.unit})` });
+    d.lots.forEach((l) => { const dl = daysLeft(l.exp); if (dl <= Number(S.settings.warnDays || 60)) out.push({ kind: dl < 0 ? 'expired' : 'exp', drug: d, lot: l, dl, text: `${d.name} ${l.qty}${d.unit} · ${kexp(l.exp)}까지 · ${dl < 0 ? '기한 지남' : dl + '일 남음'}${l.loc ? ' · ' + l.loc : ''}` }); });
+  });
+  return out;
+}
+function presence(t = now()) {
+  const o = S.override || {};
+  const d = new Date(t);
+  const untilOk = !o.until || (hm(t) < o.until);
+  if (o.place && o.place !== 'auto' && untilOk) {
+    if (o.place === 'room') return { away: false };
+    return { away: true, where: PLACE_TEXT[o.place] || o.place, sub: '', until: o.until };
+  }
+  const wd = d.getDay(); if (wd === 0 || wd === 6) return { away: false };
+  const cur = hm(t);
+  for (const p of S.periods) {
+    if (cur >= p.start && cur < p.end) { const place = (S.schedule[wd] || {})[p.key]; if (place) return { away: true, where: place, sub: p.label + ' 수업 중', until: p.end, period: p.key }; }
+  }
+  return { away: false };
+}
+function linkedVisits(st) {
+  if (!st) return [];
+  const list = S.visits.filter((v) => v.sid === st.id && v.status === 'done').map((v) => ({ ...v, year: S.school.year, snap: v.snap || snap(st) }));
+  let prev = st.prev || [];
+  const seen = new Set();
+  while (prev.length) {
+    const nxt = [];
+    prev.forEach((p) => {
+      const key = p.year + ':' + p.sid; if (seen.has(key)) return; seen.add(key);
+      const ar = S.archives.find((a) => a.year === p.year); if (!ar) return;
+      ar.visits.filter((v) => v.sid === p.sid && v.status === 'done').forEach((v) => list.push({ ...v, year: ar.year }));
+      const old = ar.roster.find((r) => r.id === p.sid); if (old && old.prev) nxt.push(...old.prev);
+    });
+    prev = nxt;
+  }
+  return list.sort((a, b) => b.at - a.at);
+}
+const whatText = (v) => [(v.parts || []).map((p) => PART_LABEL[p] || p).join(', '), (v.sym || []).map((s) => SYM_SHORT[s] || s).join(', ')].filter(Boolean).join(' · ');
+const careText = (v) => [...(v.cares || []), ...(v.custom || [])].join(', ');
+const drugText = (v) => (v.drugs || []).map((d) => `${d.name} ${d.qty}${d.unit}`).join(', ');
+
+/* ---------- 소리 ---------- */
+let AC = null;
+function ensureAudio() { try { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); K.sound = true; } catch (e) { K.sound = false; } }
+function chime() {
+  if (!AC || !S.settings.chime) return;
+  const tone = (f, at, len) => { const o = AC.createOscillator(); const g = AC.createGain(); o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.4, at + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, at + len); o.connect(g).connect(AC.destination); o.start(at); o.stop(at + len + 0.05); };
+  const t = AC.currentTime + 0.05; tone(880, t, 0.6); tone(660, t + 0.55, 0.9); tone(880, t + 1.7, 0.6); tone(660, t + 2.25, 0.9);
+}
+
+/* ---------- 알림·대화 상자 ---------- */
+let toastTimer = null;
+function toast(msg) { const o = document.getElementById('overlay'); o.innerHTML = `<div class="toast" role="status">${esc(msg)}</div>`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { o.innerHTML = ''; }, 2800); }
+let modalResolve = null;
+function ask(title, body, okLabel = '확인', danger = false, withInput = null) {
+  const o = document.getElementById('overlay');
+  o.innerHTML = `<div class="modalbg"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><h2 id="mt" style="font-size:20px">${esc(title)}</h2><div class="small" style="line-height:1.6">${body}</div>${withInput ? `<input id="modalIn" type="${withInput.type || 'text'}" placeholder="${esc(withInput.ph || '')}" inputmode="${withInput.mode || 'text'}">` : ''}<div class="row" style="justify-content:flex-end"><button class="btn ghost" data-act="modalNo">취소</button><button class="btn ${danger ? 'warn' : ''}" data-act="modalOk">${esc(okLabel)}</button></div></div></div>`;
+  setTimeout(() => { const i = document.getElementById('modalIn'); if (i) i.focus(); }, 30);
+  return new Promise((res) => { modalResolve = res; });
+}
+
+/* ---------- 길 찾기 ---------- */
+const ROUTES = ['start', 'kiosk', 'teacher', 'history', 'drugs', 'stats', 'print', 'config', 'year-end'];
+const rawHash = () => location.hash.replace('#', '');
+const route = () => { const h = rawHash(); if (h === 'kiosk' || h.startsWith('kiosk-')) return 'kiosk'; return ROUTES.includes(h) ? h : 'start'; };
+const ss = { get: (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) {} }, del: (k) => { try { sessionStorage.removeItem(k); } catch (e) {} } };
+const ls = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }, del: (k) => { try { localStorage.removeItem(k); } catch (e) {} } };
+const kioskUrl = () => location.href.split('#')[0] + '#kiosk-' + S.school.code;
+function setManifest(kiosk) {
+  const mf = document.getElementById('mf'); const ati = document.getElementById('ati'); const amt = document.getElementById('amt');
+  if (mf) mf.href = kiosk ? 'kiosk.webmanifest' : 'teacher.webmanifest';
+  if (ati) ati.href = kiosk ? 'icons/kiosk-192.png' : 'icons/teacher-192.png';
+  if (amt) amt.content = kiosk ? '똑똑! 학생' : '똑똑! 선생님';
+  document.title = kiosk ? '똑똑! 학생 화면' : '똑똑! Knock-Knock · 보건실 접수 도우미';
+}
+function kioskGate() {
+  // 학생 화면으로 연 창은 다른 화면으로 못 넘어가게
+  const h = rawHash();
+  if (ss.get('knockKiosk') === '1' && route() !== 'kiosk') { location.replace('#kiosk'); return false; }
+  setManifest(route() === 'kiosk');
+  if (route() !== 'kiosk') return true;
+  ss.del('knockUnlocked');
+  const code = h.startsWith('kiosk-') ? h.slice(6) : (ls.get('knockKioskCode') || '');
+  if (code && S.school.name && code === S.school.code) { ss.set('knockKiosk', '1'); ls.set('knockKioskCode', code); K.authed = true; }
+  else { K.authed = false; if (h.startsWith('kiosk-')) K.codeErr = '학교 코드가 맞지 않아요'; }
+  return true;
+}
+const go = (r) => { if (location.hash === '#' + r) render(); else location.hash = r; };
+window.addEventListener('hashchange', () => { if (!kioskGate()) return; window.scrollTo(0, 0); render(); });
+const locked = () => { if (!S.settings.pin) return false; try { return sessionStorage.getItem('knockUnlocked') !== '1'; } catch (e) { return false; } };
+
+/* ---------- 그리기 ---------- */
+function render() {
+  const r = route();
+  let html;
+  if (r === 'kiosk') html = K.authed ? vKiosk() : vKioskCode();
+  else if (!S.school.name) html = vSetup();
+  else if (r === 'start') html = vStart();
+  else if (locked()) html = vLock();
+  else html = ({ teacher: vTeacher, history: vHistory, drugs: vDrugs, stats: vStats, print: vPrint, config: vConfig, 'year-end': vYearEnd })[r]();
+  const app = document.getElementById('app');
+  const active = document.activeElement && document.activeElement.id;
+  app.innerHTML = (STORAGE_OK ? '' : '<div class="banner noprint">이 브라우저에서는 저장이 안 돼요. 창을 닫으면 기록이 사라져요.</div>') + html;
+  if (active) { const el = document.getElementById(active); if (el && el.tagName === 'INPUT') { el.focus(); try { const v = el.value; el.setSelectionRange(v.length, v.length); } catch (e) {} } }
+  afterRender(r);
+}
+function afterRender(r) {
+  if (r === 'kiosk' && S.call && S.call.at !== K.chimed && now() - S.call.at < 15000) { K.chimed = S.call.at; chime(); }
+}
+setInterval(() => {
+  const r = route();
+  if (r === 'kiosk') {
+    let changed = false;
+    if (K.step === 'done' && now() - K.doneAt > 10000) { resetKiosk(); changed = true; }
+    const pr = presence(); const c = activeCall();
+    const sig = [hm(now()), pr.away, pr.where, c ? c.v.id + ':' + Math.ceil((15000 - (now() - S.call.at)) / 1000) : '', queue().length].join('|');
+    if (sig !== K.sig) { K.sig = sig; changed = true; }
+    if (changed && !document.querySelector('.modalbg')) render();
+  } else if (r === 'teacher' && !document.activeElement?.matches('input,textarea,select')) {
+    const qcount = queue().length; if (qcount !== T._q) { T._q = qcount; render(); }
+  }
+}, 3000);
+
+/* ---------- 첫 설정 ---------- */
+function vSetup() {
+  return `<div class="wrap" style="max-width:640px"><div class="card stack" style="margin-top:40px">
+  <div class="row">${SYMBOL(56)}<div><h1 style="font-size:30px;font-weight:900">똑똑!</h1><div class="muted b">Knock-Knock · 보건실 접수 도우미</div></div></div>
+  <p class="muted" style="margin:0;line-height:1.6">학교 이름을 넣고 시작해요. 처음이면 '예시 자료로 둘러보기'로 학생 명단과 지난 기록이 들어간 상태를 먼저 살펴볼 수 있어요.</p>
+  <label class="f">학교 이름<input id="setupName" type="text" placeholder="예: 햇살초등학교"></label>
+  <div class="row"><button class="btn big" data-act="setupStart">빈 상태로 시작</button><button class="btn big ghost" data-act="setupSample">예시 자료로 둘러보기</button></div>
+  <div class="note g small">이 판은 지금 쓰는 기기(브라우저) 안에만 저장돼요. 태블릿·PC·휴대폰이 함께 보려면 다음 판(파이어베이스 연결)이 필요해요. 같은 PC에서 창을 두 개 열면 학생 화면과 선생님 화면을 함께 시험할 수 있어요.</div>
+  </div></div>`;
+}
+function vStart() {
+  return `<div class="wrap" style="max-width:760px"><div class="stack" style="margin-top:30px">
+  <div class="row">${SYMBOL(56)}<div><h1 style="font-size:30px;font-weight:900">똑똑!</h1><div class="muted b">${esc(S.school.name)} 보건실</div></div></div>
+  <div class="tiles">
+    <a class="card" href="#config" data-act="toKioskCard" style="text-decoration:none;color:inherit"><div class="b" style="font-size:22px">학생 화면 연결</div><div class="muted small" style="margin-top:6px">보건실 앞 태블릿에서 QR을 찍거나 학교 코드를 넣어 열어요. 학생 화면에는 선생님 화면으로 가는 단추가 없어요.</div></a>
+    <a class="card" href="#teacher" style="text-decoration:none;color:inherit"><div class="b" style="font-size:22px">선생님 화면</div><div class="muted small" style="margin-top:6px">대기열, 처치 기록, 약품, 통계, 설정</div></a>
+  </div>
+  <div class="muted xs">판 ${VERSION} · ${esc(creditText())}</div></div></div>`;
+}
+function vLock() {
+  return `<div class="wrap" style="max-width:420px"><div class="card stack" style="margin-top:60px"><h1 style="font-size:22px">선생님 화면 잠금</h1><p class="muted small" style="margin:0">잠금 번호를 넣어 주세요.</p><input id="pinIn" type="password" inputmode="numeric" placeholder="잠금 번호"><div class="row"><button class="btn" data-act="unlock">열기</button></div></div></div>`;
+}
+
+/* ---------- 학생 화면 ---------- */
+function kShell(inner, step) {
+  const waiting = queue().filter((v) => v.status === 'wait').length;
+  const steps = step ? `<div class="k-steps" aria-label="접수 단계">${['누구예요?', '어디가 아파요?', '기다려요'].map((s, i) => `<span class="${i + 1 === step ? 'on' : ''}">${i + 1} ${s}</span>`).join('')}</div>` : '';
+  return `<div class="k"><header class="k-head"><div class="row" style="gap:10px"><span id="kLogo" style="display:inline-flex;touch-action:none;user-select:none;-webkit-user-select:none">${SYMBOL(34)}</span><b style="font-size:24px;font-weight:900">똑똑!</b><span class="muted">${esc(S.school.name)} 보건실</span></div>${steps}<div class="muted">기다리는 사람 <b style="color:var(--ink)">${waiting}명</b> · ${hm(now())}</div></header>${inner}
+  <div class="k-foot noprint"><button data-act="kSound">${K.sound ? '소리 켜짐' : '소리 켜기'}</button><button data-act="kFull">전체 화면</button></div></div>`;
+}
+function activeCall() {
+  if (!S.call || now() - S.call.at > 15000) return null;
+  const v = S.visits.find((x) => x.id === S.call.vid); if (!v) return null;
+  return { v, st: student(v.sid) || v.snap };
+}
+function vKiosk() {
+  const c = activeCall(); if (c) return kCall(c);
+  if (!S.roster.length) return kShell(`<main class="k-main" style="align-items:center;justify-content:center"><div class="card" style="text-align:center;padding:50px"><h1 style="font-size:40px">준비 중이에요</h1><p class="muted" style="font-size:20px">선생님이 학생 명단을 넣으면 접수를 시작해요.</p></div></main>`);
+  const pr = presence(); if (pr.away) return kAway(pr);
+  if (K.step === 'where') return kWhere();
+  if (K.step === 'done') return kDone();
+  return kWho();
+}
+function kWho() {
+  const grades = uniq(S.roster.map((s) => s.grade)).sort((a, b) => a - b);
+  const classes = K.grade ? uniq(S.roster.filter((s) => s.grade === K.grade).map((s) => s.cls)).sort((a, b) => a - b) : [];
+  const kids = K.grade && K.cls ? S.roster.filter((s) => s.grade === K.grade && s.cls === K.cls).sort((a, b) => a.num - b.num) : [];
+  const st = student(K.sid);
+  return kShell(`<main class="k-main">
+  <section style="width:380px;flex-shrink:0" class="stack">
+    <h2 style="font-size:20px">학년</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">${grades.map((g) => `<button class="kbtn ${K.grade === g ? 'on' : ''}" style="height:84px" aria-pressed="${K.grade === g}" data-act="kGrade" data-arg="${g}">${g}학년</button>`).join('')}</div>
+    <h2 style="font-size:20px;margin-top:10px">반</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">${classes.length ? classes.map((c) => `<button class="kbtn ${K.cls === c ? 'on' : ''}" style="height:84px" aria-pressed="${K.cls === c}" data-act="kCls" data-arg="${c}">${c}반</button>`).join('') : '<div class="muted" style="grid-column:1/-1">학년을 먼저 눌러요</div>'}</div>
+  </section>
+  <section style="flex:1;min-width:0" class="stack">
+    <h2 style="font-size:20px">번호 · 이름 <span class="muted" style="font-size:15px;font-weight:400">내 이름을 찾아 눌러요</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px">${kids.length ? kids.map((s) => `<button class="knum ${K.sid === s.id ? 'on' : ''}" aria-pressed="${K.sid === s.id}" data-act="kKid" data-arg="${s.id}"><b>${s.num}</b><span>${esc(s.name)}</span></button>`).join('') : '<div class="muted" style="grid-column:1/-1">학년과 반을 누르면 이름이 나와요</div>'}</div>
+  </section></main>
+  <footer style="margin:0 32px 14px;min-height:110px;background:#fff;border:1px solid var(--line);border-radius:20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;padding:16px 24px">
+    <div><div class="muted">${st ? `${st.grade}학년 ${st.cls}반 ${st.num}번` : '학년, 반, 이름을 차례로 눌러 주세요'}</div><div style="display:flex;align-items:baseline;gap:14px"><b style="font-size:38px;font-weight:900">${st ? esc(st.name) : '—'}</b>${st ? '<span class="muted" style="font-size:18px">이름이 맞으면 눌러 주세요</span>' : ''}</div></div>
+    <div class="row"><button class="kbtn" style="height:70px;padding:0 26px;font-size:20px" data-act="kReset">다시 고르기</button><button class="btn" style="height:70px;width:250px;font-size:24px;border-radius:16px" data-act="kToWhere" ${st ? '' : 'disabled'}>네, 저예요</button></div>
+  </footer>`, 1);
+}
+function bodyMap(list) {
+  const k = 1.15;
+  return list.map(([id, label, x, y, w, h, r]) => {
+    const on = !!K.parts[id]; const fs = Math.min(18, Math.max(12, Math.round(Math.min(w, h) * k * 0.42)));
+    return `<button class="part ${on ? 'on' : ''}" data-tip="${esc(label)}" aria-label="${esc(label)}" aria-pressed="${on}" data-act="kPart" data-arg="${id}" style="left:${Math.round(x * k)}px;top:${Math.round(y * k)}px;width:${Math.round(w * k)}px;height:${Math.round(h * k)}px;border-radius:${Math.round(r * k)}px;font-size:${fs}px">${esc(partShort(label))}</button>`;
+  }).join('');
+}
+function allowedSyms(partIds) {
+  const out = [];
+  partIds.forEach((id) => BYPART[partGroup(id)].forEach((x) => { if (!out.includes(x)) out.push(x); }));
+  if (!partIds.length) ['head', 'fever', 'stomach', 'nausea', 'bruise', 'cut', 'sprain', 'nose'].forEach((x) => out.push(x));
+  out.push('etc'); return out;
+}
+function kWhere() {
+  const st = student(K.sid);
+  const picked = Object.keys(K.parts).filter((k) => K.parts[k]);
+  const syms = allowedSyms(picked);
+  Object.keys(K.sym).forEach((s) => { if (!syms.includes(s)) delete K.sym[s]; });
+  const pickedSym = syms.filter((s) => K.sym[s]);
+  const summary = [picked.map((p) => PART_LABEL[p]).join(', ') || '부위 없음', pickedSym.map((s) => SYM[s]).join(', ') || '증상 없음', (SINCE.find((x) => x[0] === K.since) || [])[1]].join(' · ');
+  return kShell(`<main class="k-main">
+  <section class="card" style="width:600px;flex-shrink:0;display:flex;flex-direction:column;gap:10px">
+    <div class="between"><h2 style="font-size:22px">아픈 곳을 눌러 주세요</h2><span class="muted small">여러 곳 골라도 돼요</span></div>
+    <div style="display:flex;justify-content:space-around">
+      <div class="stack" style="align-items:center;gap:8px"><b class="muted">앞</b><div class="body">${bodyMap(PARTS_F)}<span class="xs muted" style="position:absolute;left:-8px;top:0">오른쪽</span><span class="xs muted" style="position:absolute;right:-8px;top:0">왼쪽</span></div></div>
+      <div aria-hidden="true" style="border-left:2px dashed #C7D2CE;margin:4px 0"></div>
+      <div class="stack" style="align-items:center;gap:8px"><b class="muted">뒤</b><div class="body">${bodyMap(PARTS_B)}<span class="xs muted" style="position:absolute;left:-8px;top:0">왼쪽</span><span class="xs muted" style="position:absolute;right:-8px;top:0">오른쪽</span></div></div>
+    </div>
+  </section>
+  <section style="flex:1;min-width:0" class="stack">
+    <div class="between"><h2 style="font-size:22px">어떻게 아파요?</h2><span class="muted small">${picked.length ? '고른 곳에 맞는 것만 보여요' : '아픈 곳을 먼저 누르면 맞는 것만 보여요'}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${syms.map((s) => `<button class="kbtn ${K.sym[s] ? 'on' : ''}" style="height:58px;font-size:20px" aria-pressed="${!!K.sym[s]}" data-act="kSym" data-arg="${s}">${SYM[s]}</button>`).join('')}</div>
+    <h2 style="font-size:22px">언제부터요?</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">${SINCE.map(([id, l]) => `<button class="kbtn ${K.since === id ? 'on' : ''}" style="height:54px;font-size:18px" aria-pressed="${K.since === id}" data-act="kSince" data-arg="${id}">${l}</button>`).join('')}</div>
+    <div class="note t" style="margin-top:auto;color:var(--ink)"><b>고른 것</b> · ${esc(summary)}</div>
+    <div class="row" style="flex-wrap:nowrap"><button class="kbtn" style="height:68px;padding:0 26px;font-size:20px" data-act="kBack">뒤로</button><button class="btn" style="flex:1;height:68px;font-size:24px;border-radius:16px" data-act="kSubmit" ${pickedSym.length ? '' : 'disabled'}>접수하기</button></div>
+    <div class="muted small">${st ? esc(`${st.grade}학년 ${st.cls}반 ${st.num}번 ${st.name}`) : ''}</div>
+  </section></main>`, 2);
+}
+function kDone() {
+  const q = queue(); const v = S.visits.find((x) => x.id === K.lastVid); const st = v ? (student(v.sid) || v.snap) : null;
+  const waitList = q.filter((x) => x.status === 'wait'); const pos = v ? waitList.findIndex((x) => x.id === v.id) + 1 : 0;
+  const inRoom = q.filter((x) => x.status === 'called').length;
+  return kShell(`<main class="k-main">
+  <section class="card" style="flex:1;min-width:0;padding:40px 44px;display:flex;flex-direction:column;gap:20px">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>
+    <div><h1 style="font-size:46px;font-weight:900">접수되었어요</h1><div class="muted" style="font-size:22px;margin-top:6px">${st ? esc(`${st.grade}학년 ${st.cls}반 ${st.num}번 ${st.name}`) : ''}</div></div>
+    <div class="tiles"><div class="tile"><div class="muted">접수 시각</div><div class="v">${v ? hm(v.at) : ''}</div></div><div class="tile" style="background:var(--teal-s);border-color:var(--teal-s)"><div style="color:var(--teal-d)">내 순서</div><div class="v" style="color:var(--teal-d)">${pos ? pos + '번째' : '-'}</div></div><div class="tile"><div class="muted">기다릴 시간</div><div class="v">약 ${Math.max(1, (pos - 1 + inRoom) * 5)}분</div></div></div>
+    <p style="margin:0;font-size:24px;line-height:1.55;font-weight:500">보건실 앞 의자에 앉아 기다려 주세요.<br>이름이 불리면 문을 열고 들어오세요.</p>
+    <div class="note or" style="margin-top:auto;font-size:18px">많이 아프거나 피가 많이 나면 기다리지 말고 바로 문을 두드려 주세요.</div>
+  </section>
+  <aside style="width:340px;flex-shrink:0" class="stack">
+    <h2 style="font-size:20px">지금 순서</h2>
+    ${q.map((x, i) => { const s2 = student(x.sid) || x.snap || {}; const me = v && x.id === v.id; return `<div class="card" style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center;${me ? 'border:2px solid var(--teal)' : ''}"><div><div class="muted small">${s2.grade}학년 ${s2.cls}반</div><b style="font-size:22px">${esc(mask(s2.name))}</b></div><b class="small" style="color:${me ? 'var(--teal)' : 'var(--muted)'}">${x.status === 'called' ? '처치 받는 중' : (me ? '나 · ' : '') + (waitList.indexOf(x) + 1) + '번째'}</b></div>`; }).join('')}
+    <div class="muted small">바깥 화면에는 이름 가운데 글자를 가려서 보여 줘요.</div>
+    <div style="margin-top:auto" class="stack"><div class="muted small">10초 뒤 첫 화면으로 돌아가요</div><button class="kbtn" style="height:62px;font-size:20px" data-act="kReset">처음으로</button></div>
+  </aside></main>`, 3);
+}
+function kAway(pr) {
+  const wd = new Date().getDay(); const sch = S.schedule[wd] || {};
+  const chips = S.periods.map((p) => { const place = sch[p.key]; const nowP = pr.period === p.key; return `<div style="border-radius:12px;padding:10px 12px;${nowP ? 'background:var(--or-s);border:2px solid var(--or)' : 'background:var(--bg)'}"><div class="xs" style="color:${nowP ? 'var(--or-d)' : 'var(--muted)'}">${p.label}${nowP ? ' · 지금' : ''}</div><b>${esc(place || '보건실')}</b></div>`; }).join('');
+  return kShell(`<main class="k-main">
+  <section class="card" style="flex:1;min-width:0;padding:38px 42px;display:flex;flex-direction:column;gap:18px">
+    <div class="b" style="font-size:20px;color:var(--or-d)">보건 선생님은 지금 보건실에 안 계세요</div>
+    <div><div class="muted" style="font-size:22px">지금 계신 곳</div><div style="font-size:60px;font-weight:900;line-height:1.2">${esc(pr.where)}</div>${pr.sub ? `<div class="muted" style="font-size:22px;margin-top:4px">${esc(pr.sub)}</div>` : ''}</div>
+    <div style="border-top:1px solid var(--line);padding-top:16px" class="stack"><b class="muted">오늘 선생님 일정</b><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">${chips}</div></div>
+    <div class="note g" style="margin-top:auto;font-size:18px">숨쉬기 힘들거나, 피가 멈추지 않거나, 크게 다쳤으면 <b>가까운 선생님</b>이나 <b>교무실</b>로 바로 가세요.</div>
+  </section>
+  <aside style="width:380px;flex-shrink:0" class="stack">
+    <div class="card"><div class="muted" style="font-size:19px">보건실 문 여는 시각</div>${pr.until ? `<div style="font-size:60px;font-weight:900;color:var(--teal-d);line-height:1.15">${esc(pr.until)}</div>` : '<div style="font-size:30px;font-weight:900;color:var(--teal-d);line-height:1.3;margin:6px 0">선생님이 돌아오시면 열어요</div>'}<div class="muted" style="font-size:18px">지금은 접수를 받지 않아요</div></div>
+    <div class="card stack"><h2 style="font-size:22px">아프면 이렇게 해요</h2><div style="font-size:19px;line-height:1.45"><b style="color:var(--teal)">1</b> 교실로 돌아가 <b>담임 선생님</b>께 먼저 말씀드려요</div><div style="font-size:19px;line-height:1.45"><b style="color:var(--teal)">2</b> ${esc(pr.until || '선생님이 돌아오신')} 뒤에 다시 와서 접수해요</div></div>
+    <div class="muted small" style="margin-top:auto">선생님이 돌아오면 이 화면이 저절로 접수 화면으로 바뀌어요.</div>
+  </aside></main>`);
+}
+function kCall(c) {
+  const st = c.st || {}; const name = S.settings.maskName ? mask(st.name) : st.name;
+  const next = queue().filter((x) => x.status === 'wait')[0]; const ns = next ? (student(next.sid) || next.snap) : null;
+  const left = Math.max(0, Math.ceil((15000 - (now() - S.call.at)) / 1000));
+  return `<div class="call"><div class="between" style="font-size:20px"><b class="row" style="gap:10px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/></svg>딩동${K.sound ? '' : ' · 소리를 켜려면 화면 아래 \'소리 켜기\''}</b><span>${hm(now())}</span></div>
+  <div role="status" style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;text-align:center"><div style="font-size:50px;font-weight:700">${st.grade}학년 ${st.cls}반</div><div style="font-size:140px;font-weight:900;line-height:1.1">${esc(name)} 학생</div><div style="font-size:78px;font-weight:700">들어오세요</div></div>
+  <div class="between" style="background:rgba(0,0,0,.18);border-radius:18px;padding:16px 24px;font-size:20px;align-items:center"><div>${ns ? `다음 순서 <b>${ns.grade}학년 ${ns.cls}반 ${esc(mask(ns.name))}</b> · ` : ''}기다리는 사람 ${queue().filter((x) => x.status === 'wait').length}명</div><div class="row"><span>${left}초 뒤 접수 화면으로 돌아가요</span><button class="btn ghost" data-act="kCloseCall">접수하기</button></div></div>
+  <div class="k-foot noprint" style="padding:8px 0 0"><button style="color:#fff" data-act="kSound">${K.sound ? '소리 켜짐' : '소리 켜기'}</button></div></div>`;
+}
+function vKioskCode() {
+  const d = K.codeIn || '';
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
+  return `<div class="k" style="align-items:center;justify-content:center;padding:30px"><div class="card stack" style="width:440px;max-width:100%;align-items:center;text-align:center;padding:34px">
+  ${SYMBOL(64)}<h1 style="font-size:28px;font-weight:900">똑똑! 학생 화면</h1><p class="muted" style="margin:0">보건 선생님께 받은 학교 코드 6자리를 눌러 주세요.<br>한 번 넣으면 이 기기는 다음부터 바로 열려요.</p>
+  <div aria-live="polite" style="font-size:40px;font-weight:900;letter-spacing:10px;min-height:56px">${d.padEnd(6, '·')}</div>
+  ${K.codeErr ? `<div class="note or small" style="width:100%">${esc(K.codeErr)}</div>` : ''}
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%">${keys.map((k) => `<button class="kbtn ${k === 'ok' ? 'on' : ''}" style="height:68px" data-act="codeKey" data-arg="${k}" aria-label="${k === 'del' ? '지우기' : k === 'ok' ? '확인' : k}">${k === 'del' ? '지우기' : k === 'ok' ? '확인' : k}</button>`).join('')}</div>
+  <div class="xs muted">선생님 화면의 설정 › 학생 화면 연결에서 학교 코드와 QR을 볼 수 있어요${S.school.name ? '' : ' · 이 판은 같은 기기 안에서만 이어져요'}</div></div></div>`;
+}
+let holdTimer = null;
+document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#kLogo')) return; clearTimeout(holdTimer); holdTimer = setTimeout(kioskExit, 3000); });
+['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => document.addEventListener(ev, () => clearTimeout(holdTimer)));
+async function kioskExit() {
+  const usePin = !!S.settings.pin;
+  const v = await ask('학생 화면 끝내기', usePin ? '선생님 화면 잠금 번호를 넣으면 이 창의 학생 화면을 끝내요.' : '학교 코드 6자리를 넣으면 이 창의 학생 화면을 끝내요.', '끝내기', false, { type: 'password', mode: 'numeric', ph: usePin ? '잠금 번호' : '학교 코드' });
+  if (v === null) return;
+  if (v !== (usePin ? S.settings.pin : S.school.code)) { toast('번호가 달라요'); return; }
+  ss.del('knockKiosk'); ss.set('knockUnlocked', '1'); go('start');
+}
+function resetKiosk() { Object.assign(K, { step: 'who', grade: null, cls: null, sid: null, parts: {}, sym: {}, since: 'now', doneAt: 0 }); }
+
+/* ---------- 선생님 머리줄 ---------- */
+function topbar(active) {
+  const al = drugAlerts(); const nExp = al.filter((a) => a.kind !== 'low').length; const nLow = al.filter((a) => a.kind === 'low').length;
+  const pr = presence(); const o = S.override || {};
+  const items = [['teacher', '오늘 접수'], ['history', '학생별 기록'], ['drugs', '약품·재고'], ['stats', '통계'], ['print', '기록 출력'], ['config', '설정'], ['year-end', '학년도 마감']];
+  return `<header class="top noprint"><div class="in">
+  <a class="brand" href="#start">${SYMBOL(30)}똑똑!</a>
+  <nav class="nav" aria-label="메뉴">${items.map(([r, l]) => `<a href="#${r}" class="${active === r ? 'on' : ''}">${l}</a>`).join('')}<a href="#kiosk-${S.school.code}" target="_blank" rel="noopener" data-tip="새 창으로 열려요 · 시험용" data-tip-pos="bottom">학생 화면 ↗</a></nav>
+  <div class="row small" style="gap:8px">
+    <label class="row" style="gap:6px"><span class="muted">바깥 화면 위치</span><select id="placeSel" data-act-change="setPlace" style="height:38px">${PLACES.map(([id, l]) => `<option value="${id}" ${o.place === id ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    ${o.place && o.place !== 'auto' && o.place !== 'room' ? `<label class="row" style="gap:4px"><span class="muted">돌아올 시각</span><input id="placeUntil" type="time" value="${esc(o.until || '')}" data-act-change="setUntil" style="height:38px"></label>` : ''}
+    <span class="tag ${pr.away ? '' : 't'}" data-tip="학생 화면에 지금 보이는 상태예요" data-tip-pos="bottom">${pr.away ? '부재 · ' + esc(pr.where) : '보건실 · 접수 받는 중'}</span>
+    ${nExp + nLow ? `<a href="#drugs" data-tip-pos="bottom" data-tip="${esc(al.slice(0, 3).map((a) => a.drug.name + (a.kind === 'low' ? ' 부족' : ' 기한')).join(' · '))}${al.length > 3 ? ' 외 ' + (al.length - 3) + '건' : ''}" class="tag" style="background:var(--yel-s);border-color:var(--yel-l);color:var(--yel-d);font-weight:700;text-decoration:none">약 알림 · 기한 ${nExp} · 부족 ${nLow}</a>` : ''}
+  </div></div></header>`;
+}
+
+/* ---------- 선생님: 오늘 접수 ---------- */
+function curVisit() {
+  let v = T.cur && S.visits.find((x) => x.id === T.cur && (x.status === 'wait' || x.status === 'called'));
+  if (!v) { v = queue().find((x) => x.status === 'called'); T.cur = v ? v.id : null; }
+  return v || null;
+}
+function form(v) {
+  if (!T.f[v.id]) T.f[v.id] = { cares: {}, drugs: {}, custom: [], draft: '', saveFav: false, temp: '', memo: '', result: 'back', calls: {} };
+  return T.f[v.id];
+}
+function vTeacher() {
+  const q = queue(); const v = curVisit(); const done = todayVisits().filter((x) => x.status === 'done').sort((a, b) => b.at - a.at);
+  const st = v ? (student(v.sid) || v.snap) : null;
+  return topbar('teacher') + `<main class="wrap"><div class="cols">
+  <aside class="c-q stack">
+    <button class="btn big" data-act="callNext" ${q.some((x) => x.status === 'wait') ? '' : 'disabled'}>다음 학생 입장</button>
+    <div class="between small"><span class="muted">누르면 학생 화면에서 이름을 불러요</span>${v ? '<button class="link" data-act="recall">다시 부르기</button>' : ''}</div>
+    <h2 style="font-size:17px">대기 ${q.filter((x) => x.status === 'wait').length}명</h2>
+    ${q.length ? q.map((x, i) => { const s2 = student(x.sid) || x.snap || {}; return `<button class="qcard ${v && v.id === x.id ? 'cur' : ''}" title="${esc(whatText(x))} · 눌러서 처치 화면 열기" data-act="pickVisit" data-arg="${x.id}"><div class="between"><b style="font-size:18px">${esc(s2.name)} <span class="small muted" style="font-weight:400">${clsText(s2)}</span></b><b class="xs" style="color:${x.status === 'called' ? 'var(--teal)' : 'var(--muted)'}">${x.status === 'called' ? '처치 중' : '대기'}</b></div><div class="xs muted">접수 ${hm(x.at)} · ${Math.max(0, Math.round((now() - x.at) / 60000))}분째</div><div class="chips" style="gap:6px">${(x.parts || []).map((p) => `<span class="tag">${esc(PART_LABEL[p])}</span>`).join('')}${(x.sym || []).map((s) => `<span class="tag">${esc(SYM_SHORT[s])}</span>`).join('')}</div></button>`; }).join('') : '<div class="muted small">기다리는 학생이 없어요</div>'}
+    <button class="btn ghost" data-act="walkOpen">+ 직접 접수</button>
+    ${T.walk ? walkForm() : ''}
+  </aside>
+  <section class="c-w stack">${v ? treatForm(v, st) : `<div class="card"><h2 style="font-size:20px">처치할 학생을 기다리는 중</h2><p class="muted" style="margin:6px 0 0">'다음 학생 입장'을 누르거나 대기 카드를 누르면 여기에서 처치를 적어요.</p></div>`}
+    <div class="card stack"><div class="between"><h2 style="font-size:18px">오늘 기록 ${done.length}건</h2><a class="btn line" href="#print">기록부 출력</a></div>
+    ${done.length ? `<div class="scroll"><table class="t" style="min-width:680px"><thead><tr><th>접수</th><th>학생</th><th>부위·증상</th><th>처치·투약</th><th>조치</th><th></th></tr></thead><tbody>${done.map((x) => { const s2 = student(x.sid) || x.snap || {}; return `<tr><td>${hm(x.at)}</td><td><button class="link" data-act="openHist" data-arg="${x.sid}">${clsText(s2)} ${esc(s2.name)}</button></td><td>${esc(whatText(x))}</td><td>${esc([careText(x), drugText(x)].filter(Boolean).join(', '))}</td><td>${esc(RESULT_LABEL[x.result] || '')}</td><td><button class="link" data-act="reopen" data-arg="${x.id}">고치기</button></td></tr>`; }).join('')}</tbody></table></div>` : '<div class="muted small">아직 처치를 마친 학생이 없어요</div>'}
+    </div>
+  </section>
+  ${v ? `<aside class="c-h">${histPanel(st, v)}</aside>` : ''}
+  </div></main>`;
+}
+function walkForm() {
+  const w = T.walk; const grades = uniq(S.roster.map((s) => s.grade)).sort((a, b) => a - b);
+  const classes = w.grade ? uniq(S.roster.filter((s) => s.grade === Number(w.grade)).map((s) => s.cls)).sort((a, b) => a - b) : [];
+  const kids = w.grade && w.cls ? S.roster.filter((s) => s.grade === Number(w.grade) && s.cls === Number(w.cls)).sort((a, b) => a.num - b.num) : [];
+  return `<div class="card stack" style="padding:16px"><b>직접 접수</b>
+  <div class="row" style="flex-wrap:nowrap"><select id="wG" data-act-change="walkSet" data-arg="grade" style="flex:1"><option value="">학년</option>${grades.map((g) => `<option ${Number(w.grade) === g ? 'selected' : ''} value="${g}">${g}학년</option>`).join('')}</select><select id="wC" data-act-change="walkSet" data-arg="cls" style="flex:1"><option value="">반</option>${classes.map((c) => `<option ${Number(w.cls) === c ? 'selected' : ''} value="${c}">${c}반</option>`).join('')}</select></div>
+  <select id="wS" data-act-change="walkSet" data-arg="sid"><option value="">학생</option>${kids.map((s) => `<option ${w.sid === s.id ? 'selected' : ''} value="${s.id}">${s.num}번 ${esc(s.name)}</option>`).join('')}</select>
+  <select id="wY" data-act-change="walkSet" data-arg="sym"><option value="">증상</option>${Object.keys(SYM).map((s) => `<option ${w.sym === s ? 'selected' : ''} value="${s}">${SYM[s]}</option>`).join('')}</select>
+  <div class="row"><button class="btn" data-act="walkAdd">접수하고 처치하기</button><button class="link" data-act="walkClose">닫기</button></div></div>`;
+}
+function treatForm(v, st) {
+  const f = form(v);
+  const chipCare = (label) => `<button class="chip ${f.cares[label] ? 'on' : ''}" aria-pressed="${!!f.cares[label]}" data-act="tCare" data-arg="${esc(label)}">${esc(label)}</button>`;
+  const chipDrug = (d) => { const tot = drugTotal(d); const first = d.lots.slice().sort((a, b) => a.exp.localeCompare(b.exp))[0]; const tip = first ? `먼저 쓸 묶음 ${kexp(first.exp)}까지${first.loc ? ' · ' + first.loc : ''}` : '재고 없음 · 약품·재고에서 입고해 주세요'; return `<button class="chip drug ${f.drugs[d.id] ? 'on' : ''}" data-tip="${esc(tip)}" aria-pressed="${!!f.drugs[d.id]}" data-act="tDrug" data-arg="${d.id}">${esc(d.name)}<small>${d.counted ? `재고 ${tot}${d.unit}` : '사용 횟수만 기록'}</small></button>`; };
+  const syms = v.sym || [];
+  const groups = syms.map((s) => `<div class="stack" style="gap:8px"><div class="small b muted">${esc(SYM[s])} · 학생이 고른 증상</div><div class="chips">${careList(s).map(chipCare).join('')}</div></div>`).join('');
+  const myDrugs = S.drugs.filter((d) => d.syms.some((s) => syms.includes(s)));
+  const drugGroup = myDrugs.length ? `<div class="stack" style="gap:8px"><div class="small b muted">약 · 약 목록에서 이 증상에 맞는 약</div><div class="chips">${myDrugs.map(chipDrug).join('')}</div></div>` : '';
+  const common = `<div class="stack" style="gap:8px"><div class="small b muted">공통</div><div class="chips">${COMMON_CARE.map(chipCare).join('')}</div></div>`;
+  const otherSyms = Object.keys(DEFAULT_CARE).filter((s) => !syms.includes(s));
+  const other = T.more ? `<div class="note g stack">${otherSyms.map((s) => `<div class="stack" style="gap:6px"><div class="small b muted">${esc(SYM[s])}</div><div class="chips">${careList(s).map(chipCare).join('')}</div></div>`).join('')}<div class="stack" style="gap:6px"><div class="small b muted">다른 약</div><div class="chips">${S.drugs.filter((d) => !myDrugs.includes(d)).map(chipDrug).join('')}</div></div></div>` : '';
+  const used = S.drugs.filter((d) => f.drugs[d.id]);
+  const drugUse = used.length ? `<div class="note or stack" style="color:var(--ink)"><div class="small b" style="color:var(--or-d)">쓴 약의 양 <span class="muted" style="font-weight:400">저장하면 재고에서 저절로 줄어요</span></div>${used.map((d) => { const q = f.drugs[d.id]; const unit = d.counted ? d.unit : '회'; const tot = drugTotal(d); return `<div class="between" style="align-items:center;background:#fff;border-radius:10px;padding:8px 10px 8px 14px"><div><b>${esc(d.name)}</b><div class="xs muted">${d.counted ? `지금 재고 ${tot}${d.unit} → 저장 뒤 ${Math.max(0, tot - q)}${d.unit}${tot < q ? ' (재고보다 많아요)' : ''}` : '사용 횟수만 적어요 · 통이 비면 약품·재고에서 줄여요'}</div></div><div class="stepper"><button aria-label="${esc(d.name)} 하나 줄이기" data-act="tDrugQ" data-arg="${d.id}|-1">−</button><b style="min-width:60px;text-align:center;font-size:17px">${q}${unit}</b><button aria-label="${esc(d.name)} 하나 늘리기" data-act="tDrugQ" data-arg="${d.id}|1">+</button></div></div>`; }).join('')}</div>` : '';
+  const customChips = f.custom.length ? `<div class="chips">${f.custom.map((c, i) => `<span class="row" style="gap:0;border:2px solid var(--teal);background:var(--teal);border-radius:12px;overflow:hidden"><span style="color:#fff;font-weight:700;padding:0 10px 0 14px">${esc(c)}</span><button aria-label="${esc(c)} 지우기" data-act="tCustomDel" data-arg="${i}" style="width:40px;height:44px;border:0;border-left:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;cursor:pointer;font-size:16px">×</button></span>`).join('')}</div>` : '';
+  const guards = (st && st.guardians || []).filter((g) => g.phone);
+  const guardHtml = guards.length ? `<div class="row" style="align-items:stretch">${guards.map((g, i) => `<div class="between" style="flex:1 1 260px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 10px 8px 14px"><div><div class="xs muted">보호자 · ${esc(g.rel || '')}</div><b>${esc(g.phone)}</b></div><div class="row" style="gap:6px"><a class="btn" data-tip="${esc(g.phone)} 로 전화" href="tel:${esc(g.phone.replace(/[^0-9+]/g, ''))}">전화 걸기</a><button class="chip ${f.calls[i] ? 'on' : ''}" data-act="tCall" data-arg="${i}">${f.calls[i] ? '통화함 ' + hm(f.calls[i]) : '통화했어요'}</button></div></div>`).join('')}</div>` : `<div class="muted small">등록된 보호자 번호가 없어요 · 설정의 명렬표에서 넣을 수 있어요</div>`;
+  const nCare = Object.keys(f.cares).filter((k) => f.cares[k]).length + f.custom.length + used.length;
+  return `<div class="card stack" style="gap:18px">
+  <div class="between"><div><div class="small b" style="color:var(--teal)">${v.status === 'called' ? '처치 중' : '대기 중인 학생'}</div><h1 style="font-size:26px;font-weight:900"><button class="link" style="font-size:26px;color:var(--ink)" data-act="openHist" data-arg="${v.sid}">${esc(st.name)}</button> <span class="muted" style="font-size:17px;font-weight:500">${st.grade}학년 ${st.cls}반 ${st.num}번</span></h1></div><div class="small muted">접수 ${hm(v.at)}${v.calledAt ? ' · 입실 ' + hm(v.calledAt) : ''}</div></div>
+  <div class="chips">${(v.parts || []).map((p) => `<span class="tag t">${esc(PART_LABEL[p])}</span>`).join('')}${syms.map((s) => `<span class="tag t">${esc(SYM[s])}</span>`).join('')}<span class="tag">${esc((SINCE.find((x) => x[0] === v.since) || [])[1] || '')}</span>${v.status === 'wait' ? '<button class="btn" data-act="callThis" data-arg="' + v.id + '">이 학생 부르기</button>' : ''}</div>
+  ${guardHtml}
+  <div class="stack"><div class="between"><h2 style="font-size:18px">처치 내용 <span class="muted small" style="font-weight:400">여러 개를 함께 골라도 돼요</span></h2><b class="small" style="color:var(--teal-d)">고른 처치 ${nCare}개</b></div>
+  ${groups}
+  <div class="stack" style="gap:8px;background:var(--bg);border-radius:12px;padding:12px 14px">
+    <label class="small b muted" for="tDraft">직접 입력 <span style="font-weight:400">목록에 없는 처치를 적고 추가를 눌러요</span></label>
+    <div class="row" style="flex-wrap:nowrap"><input id="tDraft" type="text" style="flex:1" value="${esc(f.draft)}" data-bind="draft" placeholder="예: 얼음물로 입 헹굼" data-enter="tCustomAdd"><button class="btn line" data-act="tCustomAdd">추가</button></div>
+    <label class="check small"><input type="checkbox" ${f.saveFav ? 'checked' : ''} data-act="tFav" style="width:18px;height:18px;accent-color:var(--teal)">추가한 처치를 '${esc(SYM_SHORT[syms[0]] || '기타')}' 칸에 저장해서 다음부터 보여 주기</label>
+    ${customChips}
+  </div>
+  ${drugGroup}${common}${drugUse}
+  <button class="link" style="align-self:flex-start" data-act="tMore">${T.more ? '다른 증상 처치 접기' : '다른 증상 처치도 보기'}</button>${other}
+  </div>
+  <div class="row" style="align-items:flex-end"><label class="f" style="width:150px">체온 (℃)<input id="tTemp" type="text" inputmode="decimal" value="${esc(f.temp)}" data-bind="temp"></label><label class="f" style="flex:1 1 300px">메모<input id="tMemo" type="text" value="${esc(f.memo)}" data-bind="memo"></label></div>
+  <div class="stack" style="gap:8px"><div class="small b muted">조치 결과</div><div class="chips">${RESULTS.map(([id, l]) => `<button class="chip ${f.result === id ? 'on' : ''}" aria-pressed="${f.result === id}" data-act="tResult" data-arg="${id}">${l}</button>`).join('')}</div></div>
+  <div class="note g"><b>기록부에 적힐 내용</b><br><span id="previewBox">${esc(previewText(v, f))}</span></div>
+  <div class="row" style="justify-content:space-between"><button class="link" style="color:var(--muted)" data-act="cancelVisit" data-arg="${v.id}">접수 취소 (학생이 돌아감)</button><div class="row"><button class="btn ghost" data-act="saveVisit" data-arg="">처치 완료·저장</button><button class="btn" data-act="saveVisit" data-arg="next">저장하고 다음 학생 입장</button></div></div>
+  </div>`;
+}
+function previewText(v, f) {
+  const cares = Object.keys(f.cares).filter((k) => f.cares[k]);
+  const drugs = S.drugs.filter((d) => f.drugs[d.id]).map((d) => `${d.name} ${f.drugs[d.id]}${d.counted ? d.unit : '회'} 투약`);
+  const st = student(v.sid) || {};
+  const calls = Object.keys(f.calls).filter((k) => f.calls[k]).map((i) => `보호자(${(st.guardians || [])[i]?.rel || ''}) 통화(${hm(f.calls[i])})`);
+  const all = [...cares, ...f.custom, ...drugs, ...calls];
+  return `${whatText(v)} → ${all.join(', ') || '처치를 골라 주세요'}${f.temp ? ' / 체온 ' + f.temp + '℃' : ''} / ${RESULT_LABEL[f.result]}`;
+}
+function histPanel(st, v) {
+  const list = linkedVisits(student(v.sid)).slice(0, 6);
+  const thisYear = list.filter((x) => x.year === S.school.year).length;
+  const parts = v.parts || [];
+  const same = list.filter((x) => (x.parts || []).some((p) => parts.includes(p)));
+  return `<div class="card stack" style="gap:12px"><div class="between"><h2 style="font-size:17px">${esc(st.name)} 지난 기록</h2><button class="link" data-act="openHist" data-arg="${v.sid}">전체 보기</button></div>
+  <div class="small muted">올해 ${thisYear}회 · 지난해까지 ${list.length - thisYear}회</div>
+  ${same.length ? `<div class="note or small"><b>같은 부위 ${same.length + 1}번째</b> · ${esc(same.map((x) => kdate(x.at) + ' ' + whatText(x)).slice(0, 2).join(' / '))}</div>` : ''}
+  ${student(v.sid)?.note ? `<div class="note g small"><b>주의 메모</b> · ${esc(student(v.sid).note)}</div>` : ''}
+  ${list.length ? list.map((x) => `<div style="border-top:1px solid #EEF2F0;padding-top:10px" class="stack"><div class="between xs muted" style="gap:4px"><b style="color:var(--ink)">${kdate(x.at)}</b><span>${x.snap ? x.snap.grade + '학년' : ''}</span></div><b class="small" style="color:${(x.parts || []).some((p) => parts.includes(p)) ? 'var(--or-d)' : 'var(--ink)'}">${esc(whatText(x))}</b><div class="xs" style="line-height:1.5">${esc([careText(x), drugText(x)].filter(Boolean).join(', '))}${x.result ? ' · ' + esc(RESULT_LABEL[x.result]) : ''}</div></div>`).join('') : '<div class="muted small">처음 온 학생이에요</div>'}
+  </div>`;
+}
+
+/* ---------- 학생별 기록 ---------- */
+function vHistory() {
+  const st = T.histSid ? student(T.histSid) : null;
+  const qtxt = (T.histQ || '').trim();
+  const found = qtxt ? S.roster.filter((s) => s.name.includes(qtxt) || clsText(s).includes(qtxt)).slice(0, 40) : [];
+  let body;
+  if (!st) {
+    body = `<div class="card stack"><h1 style="font-size:24px;font-weight:900">학생별 기록</h1><label class="f">학생 찾기<input id="histQ" type="text" placeholder="이름 또는 6-2-14" value="${esc(qtxt)}" data-bind-root="histQ" data-live="1"></label>
+    ${found.length ? `<div class="chips">${found.map((s) => `<button class="chip" data-act="openHist" data-arg="${s.id}">${clsText(s)} ${esc(s.name)}</button>`).join('')}</div>` : `<div class="muted small">${qtxt ? '찾는 학생이 없어요' : '이름을 적으면 바로 찾아요. 오늘 접수·대기열·처치 화면에서 이름을 눌러도 여기로 와요.'}</div>`}</div>`;
+  } else {
+    const all = linkedVisits(st); const years = uniq(all.map((x) => x.year)).sort((a, b) => b - a);
+    const list = all.filter((x) => T.histTab === 'all' || String(x.year) === String(T.histTab));
+    const partCount = {}; all.forEach((x) => (x.parts || []).forEach((p) => { const l = partShort(PART_LABEL[p] || p); const side = (PART_LABEL[p] || '').match(/^(오른|왼)/); partCount[(side ? side[0] : '') + l] = (partCount[(side ? side[0] : '') + l] || 0) + 1; }));
+    const topPart = Object.entries(partCount).sort((a, b) => b[1] - a[1])[0];
+    body = `<button class="link noprint" data-act="histBack">← 다른 학생 찾기</button>
+    <div class="between"><div><h1 style="font-size:28px;font-weight:900">${esc(st.name)} <span class="muted" style="font-size:18px;font-weight:500">${st.grade}학년 ${st.cls}반 ${st.num}번</span></h1>${(st.prev || []).length ? '<div class="small muted">지난 학년도 기록과 이어져 있어요</div>' : ''}</div><button class="btn ghost noprint" data-act="doPrint">이 학생 기록 출력</button></div>
+    <div class="card stack" style="padding:16px 18px"><label class="f">주의 메모 <span class="xs" style="font-weight:400">보건 선생님만 보는 칸 · 처치 화면 옆에 함께 보여요</span><textarea id="noteIn" rows="2" data-bind-student="${st.id}">${esc(st.note || '')}</textarea></label></div>
+    <div class="tiles"><div class="tile"><div class="muted small">전체 방문</div><div class="v">${all.length}회</div></div><div class="tile"><div class="muted small">자주 아픈 곳</div><div class="v">${topPart ? esc(topPart[0]) : '-'}</div></div><div class="tile"><div class="muted small">투약</div><div class="v">${all.filter((x) => (x.drugs || []).length).length}회</div></div><div class="tile"><div class="muted small">보호자 연락</div><div class="v">${all.filter((x) => (x.calls || []).length).length}회</div></div></div>
+    <div class="card stack"><div class="between"><h2 style="font-size:18px">보건실 기록</h2><div class="chips noprint">${['all', ...years].map((y) => `<button class="chip ${String(T.histTab) === String(y) ? 'on' : ''}" data-act="histTab" data-arg="${y}">${y === 'all' ? '전체' : y + '학년도'}</button>`).join('')}</div></div>
+    ${list.length ? `<div class="scroll"><table class="t" style="min-width:820px"><thead><tr><th>날짜</th><th>그때 학년·반</th><th>부위 · 증상</th><th>처치</th><th>투약</th><th>조치</th><th>메모</th></tr></thead><tbody>${list.map((x) => `<tr><td class="b" style="white-space:nowrap">${kdate(x.at)}</td><td class="muted">${x.snap ? clsText(x.snap) : ''}</td><td>${esc(whatText(x))}</td><td>${esc(careText(x))}${x.temp ? ' · ' + esc(x.temp) + '℃' : ''}</td><td>${esc(drugText(x) || '-')}</td><td style="white-space:nowrap">${esc(RESULT_LABEL[x.result] || '')}</td><td class="muted">${esc(x.memo || '')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="muted small">기록이 없어요</div>'}
+    </div>`;
+  }
+  return topbar('history') + `<main class="wrap" style="max-width:1200px"><div class="stack">${body}</div></main>`;
+}
+
+/* ---------- 약품·재고 ---------- */
+function vDrugs() {
+  const al = drugAlerts();
+  const intakeOne = () => { const d = S.drugs.find((x) => x.id === T.form.drug) || S.drugs[0]; return `<label class="f">약 이름<select id="inDrug" data-bind-form="drug">${S.drugs.map((x) => `<option value="${x.id}" ${d && x.id === d.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px"><label class="f">들어온 양 (${esc(d ? d.unit : '')})<input id="inQty" type="text" inputmode="numeric" value="${esc(T.form.qty)}" data-bind-form="qty"></label><label class="f">유통기한<input id="inExp" type="date" value="${esc(T.form.exp)}" data-bind-form="exp"></label></div>
+    <label class="f">보관 위치 <span class="xs" style="font-weight:400">(선택)</span><input id="inLoc" type="text" value="${esc(T.form.loc)}" placeholder="예: 약장 2칸" data-bind-form="loc"></label>
+    <button class="btn big" data-act="intakeOne">입고하기</button>`; };
+  const intakeXls = () => `<label class="btn ghost" style="border-style:dashed;min-height:80px;flex-direction:column;cursor:pointer">품의서 엑셀 파일 고르기<span class="xs muted" style="font-weight:400">품명·규격·수량을 읽어 아래에 미리 보여 줘요</span><input id="purFile" type="file" accept=".xlsx,.xls,.csv" data-act-change="purFile" style="display:none"></label><div class="xs muted" style="line-height:1.5">학교마다 서식이 달라서, 처음 한 번만 '품명'과 '수량'이 어느 열인지 골라 주면 다음부터 기억해요.</div>${T.pur ? `<div class="note t small"><b>${esc(T.pur.file)}</b> · ${T.pur.rows.length}줄 읽음</div>` : ''}`;
+  return topbar('drugs') + `<main class="wrap" style="max-width:1400px"><div class="stack">
+  <div class="between" style="align-items:flex-end"><div><h1 style="font-size:26px;font-weight:900">약품 입고와 재고</h1><div class="small muted">처치 때 쓴 만큼 저절로 줄어요. 같은 약이 여러 번 들어오면 유통기한이 빠른 것부터 줄여요.</div></div>
+  <label class="row small" style="gap:6px"><span class="muted">유통기한 알림</span><select id="warnSel" data-act-change="setWarn">${[30, 60, 90].map((d) => `<option value="${d}" ${Number(S.settings.warnDays) === d ? 'selected' : ''}>${d}일 전</option>`).join('')}</select></label></div>
+  ${al.length ? `<div class="row" style="align-items:stretch">${al.map((a) => `<div class="note ${a.kind === 'low' ? 'or' : 'y'}" style="flex:1 1 280px"><div class="xs b">${a.kind === 'low' ? '재고 부족' : a.kind === 'expired' ? '유통기한 지남' : '유통기한 임박'}</div><div class="b" style="color:var(--ink)">${esc(a.text)}</div></div>`).join('')}</div>` : '<div class="note t small">유통기한이 다가오거나 모자란 약이 없어요</div>'}
+  <div class="cols">
+    <section class="card stack" style="flex:1 1 340px;min-width:0"><h2 style="font-size:18px">약이 들어왔어요 (입고)</h2>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px"><button class="chip ${T.intake === 'one' ? 'on' : ''}" data-act="intakeMode" data-arg="one">하나씩 입력</button><button class="chip ${T.intake === 'xls' ? 'on' : ''}" data-act="intakeMode" data-arg="xls">품의서 엑셀로</button></div>
+      ${T.intake === 'one' ? intakeOne() : intakeXls()}
+    </section>
+    <section class="card stack" style="flex:999 1 640px;min-width:0"><div class="between"><h2 style="font-size:18px">재고</h2><button class="btn line" data-act="newDrug">새 약 추가</button></div>
+      ${T.newDrug ? drugEditForm(T.newDrug, true) : ''}
+      <div class="scroll"><table class="t" style="min-width:760px"><thead><tr><th>약 이름</th><th style="text-align:right">남은 양</th><th>유통기한 (들어온 묶음별)</th><th>보관 위치</th><th>처치 때 줄이는 방식</th><th></th></tr></thead><tbody>
+      ${S.drugs.map((d) => { const tot = drugTotal(d); const low = d.min > 0 && tot < d.min; const lots = [...d.lots].sort((a, b) => a.exp.localeCompare(b.exp)); const locs = uniq(lots.map((l) => l.loc).filter(Boolean)); return T.editDrug === d.id ? `<tr><td colspan="6">${drugEditForm(T._draft, false)}</td></tr>` : `<tr><td><b>${esc(d.name)}</b><br><span class="xs muted">${esc(d.kind)} · 맞는 증상 ${esc(d.syms.map((s) => SYM_SHORT[s]).join('·') || '없음')}</span></td><td style="text-align:right;white-space:nowrap"><b style="font-size:16px;color:${low ? 'var(--or-d)' : 'var(--ink)'}">${tot}${esc(d.unit)}</b><br><span class="xs muted">최소 ${d.min}${esc(d.unit)}</span></td><td>${lots.length ? lots.map((l) => { const dl = daysLeft(l.exp); return `<div class="row" style="gap:8px;padding:2px 0" data-tip="${esc((l.loc ? '보관 위치 ' + l.loc + ' · ' : '') + (dl < 0 ? '기한이 지났어요' : dl + '일 남음'))}"><span>${kexp(l.exp)}</span><span class="xs muted">${l.qty}${esc(d.unit)}</span>${dl <= S.settings.warnDays ? `<b class="xs" style="color:${dl < 30 ? 'var(--or-d)' : 'var(--yel-d)'}">${dl < 0 ? '기한 지남' : dl + '일 남음'}</b>` : ''}<button class="link xs" data-act="lotOut" data-arg="${d.id}|${l.id}">폐기·빼기</button></div>`; }).join('') : '<span class="muted small">없음</span>'}</td><td class="${locs.length ? '' : 'muted'}">${esc(locs.join(', ') || '적지 않음')}</td><td class="muted small">${d.counted ? '1' + esc(d.unit) + '씩 줄이기' : '사용 횟수만 (통이 비면 빼기)'}</td><td><button class="link" data-act="editDrug" data-arg="${d.id}">고치기</button></td></tr>`; }).join('')}
+      </tbody></table></div>
+    </section>
+  </div>
+  ${T.intake === 'xls' && T.pur ? purPreview() : ''}
+  <section class="card stack"><h2 style="font-size:18px">들어오고 나간 기록 <span class="small muted" style="font-weight:400">처치 때 쓴 양은 저절로 적혀요</span></h2>
+  ${S.stockLog.length ? `<div class="scroll"><table class="t" style="min-width:620px"><thead><tr><th>때</th><th>약</th><th style="text-align:right">양</th><th>내용</th></tr></thead><tbody>${S.stockLog.slice(0, 40).map((l) => `<tr><td style="white-space:nowrap">${kdate(l.at)} ${hm(l.at)}</td><td>${esc(l.name)}</td><td style="text-align:right;font-weight:700;color:${l.delta > 0 ? 'var(--teal-d)' : 'var(--or-d)'}">${l.delta > 0 ? '+' : ''}${esc(l.qtyText)}</td><td>${esc(l.note)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="muted small">아직 기록이 없어요</div>'}</section>
+  </div></main>`;
+}
+function drugEditForm(d, isNew) {
+  return `<div class="note g stack"><b>${isNew ? '새 약 추가' : esc(d.name) + ' 고치기'}</b>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+  <label class="f">약 이름<input id="dName" type="text" value="${esc(d.name)}" data-bind-drug="name"></label>
+  <label class="f">종류<input id="dKind" type="text" value="${esc(d.kind)}" data-bind-drug="kind"></label>
+  <label class="f">단위<input id="dUnit" type="text" value="${esc(d.unit)}" data-bind-drug="unit" placeholder="정·매·포·개·병"></label>
+  <label class="f">최소 수량<input id="dMin" type="text" inputmode="numeric" value="${esc(d.min)}" data-bind-drug="min"></label></div>
+  <label class="check small"><input type="checkbox" ${d.counted ? 'checked' : ''} data-act="dCounted" style="width:18px;height:18px;accent-color:var(--teal)">처치 때 쓴 개수만큼 재고에서 줄이기 (끄면 사용 횟수만 적어요 · 겔·시럽·연고 등)</label>
+  <div class="small b muted">맞는 증상 (처치 화면에서 이 증상 칸에 약이 떠요)</div>
+  <div class="chips">${Object.keys(SYM).filter((s) => s !== 'etc').map((s) => `<button class="chip ${d.syms.includes(s) ? 'on' : ''}" data-act="dSym" data-arg="${s}">${SYM_SHORT[s]}</button>`).join('')}</div>
+  <div class="row"><button class="btn" data-act="dSave">${isNew ? '추가하기' : '저장'}</button><button class="link" data-act="dCancel">취소</button>${isNew ? '' : '<button class="link" style="color:var(--or-d)" data-act="dDelete">이 약 지우기</button>'}</div></div>`;
+}
+function purPreview() {
+  const p = T.pur; const hdr = p.aoa[p.hdr] || [];
+  const colSel = (key, label) => `<label class="f">${label}<select data-act-change="purCol" data-arg="${key}"><option value="-1">없음</option>${hdr.map((h, i) => `<option value="${i}" ${p.cols[key] === i ? 'selected' : ''}>${esc(h || (i + 1) + '번째 열')}</option>`).join('')}</select></label>`;
+  return `<section class="card stack" style="border:2px solid var(--teal)"><h2 style="font-size:18px">품의서에서 읽은 약 <span class="small muted" style="font-weight:400">확인하고 유통기한만 적어 주세요 (품의서에는 유통기한이 없어서 받은 상자를 보고 적어요)</span></h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px"><label class="f">제목 줄<select data-act-change="purHdr">${p.aoa.slice(0, 15).map((r, i) => `<option value="${i}" ${p.hdr === i ? 'selected' : ''}>${i + 1}번째 줄: ${esc(r.filter(Boolean).slice(0, 3).join(' / ').slice(0, 30))}</option>`).join('')}</select></label>${colSel('name', '품명 열')}${colSel('spec', '규격 열')}${colSel('qty', '수량 열')}</div>
+  <div class="scroll"><table class="t" style="min-width:920px"><thead><tr><th></th><th>품의서 품명 · 규격</th><th style="text-align:right">품의서 수량</th><th>약 목록과 짝</th><th style="text-align:right">들어갈 양</th><th>유통기한</th><th>보관 위치 (선택)</th></tr></thead><tbody>
+  ${p.rows.map((r, i) => { const d = S.drugs.find((x) => x.id === r.match); return `<tr><td><input type="checkbox" ${r.use ? 'checked' : ''} data-act="purUse" data-arg="${i}" aria-label="이 줄 넣기" style="width:18px;height:18px;accent-color:var(--teal)"></td><td><b>${esc(r.item)}</b><br><span class="xs muted">${esc(r.spec)}</span></td><td style="text-align:right">${esc(r.qtyRaw)}</td><td><select data-act-change="purMatch" data-arg="${i}"><option value="__new" ${r.match === '__new' ? 'selected' : ''}>새 약으로 추가</option>${S.drugs.map((x) => `<option value="${x.id}" ${r.match === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></td><td style="text-align:right;white-space:nowrap"><input type="text" inputmode="numeric" value="${r.into}" data-bind-pur="${i}|into" style="width:70px;text-align:right"> ${esc(d ? d.unit : r.unit)}</td><td><input type="date" value="${esc(r.exp)}" data-bind-pur="${i}|exp" style="border-color:${r.exp || !r.use ? 'var(--line)' : 'var(--or)'}"></td><td><input type="text" value="${esc(r.loc)}" placeholder="예: 약장 2칸" data-bind-pur="${i}|loc" style="width:130px"></td></tr>`; }).join('')}
+  </tbody></table></div>
+  <div class="between" style="align-items:center"><div class="small b" style="color:var(--or-d)">${p.rows.filter((r) => r.use && !r.exp).length ? '유통기한을 적지 않은 줄이 ' + p.rows.filter((r) => r.use && !r.exp).length + '개 있어요' : ''}</div><div class="row"><button class="btn ghost" data-act="purCancel">취소</button><button class="btn" data-act="purImport">${p.rows.filter((r) => r.use).length}가지 한꺼번에 입고</button></div></div></section>`;
+}
+
+/* ---------- 통계 ---------- */
+function yearData(y) {
+  if (Number(y) === S.school.year) return { visits: S.visits.filter((v) => v.status === 'done'), roster: S.roster };
+  const ar = S.archives.find((a) => a.year === Number(y)); return ar ? { visits: ar.visits.filter((v) => v.status === 'done'), roster: ar.roster } : { visits: [], roster: [] };
+}
+const MONTHS = ['3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월', '1월', '2월'];
+const mIndex = (t) => (new Date(t).getMonth() + 10) % 12;
+function statsOf(y, grade) {
+  const { visits } = yearData(y);
+  const vs = visits.filter((v) => grade === 'all' || String((v.snap || {}).grade) === String(grade));
+  const mat = Object.fromEntries(CATS.map((c) => [c, Array(12).fill(0)]));
+  const monthTot = Array(12).fill(0); const symByMonth = Array(12).fill(0).map(() => ({}));
+  const care = {}; const grades = {};
+  vs.forEach((v) => {
+    const mi = mIndex(v.at); const cat = S.symCat[(v.sym || [])[0]] || '기타';
+    mat[cat][mi]++; monthTot[mi]++;
+    (v.sym || []).forEach((s) => { symByMonth[mi][s] = (symByMonth[mi][s] || 0) + 1; });
+    [...(v.cares || []), ...(v.custom || [])].forEach((c) => { care[c] = (care[c] || 0) + 1; });
+    if ((v.drugs || []).length) care['투약'] = (care['투약'] || 0) + 1;
+    const g = (v.snap || {}).grade; if (g) grades[g] = (grades[g] || 0) + 1;
+  });
+  return { vs, mat, monthTot, symByMonth, care, grades };
+}
+function vStats() {
+  const years = uniq([S.school.year, ...S.archives.map((a) => a.year)]).sort((a, b) => b - a);
+  const y = T.statYear || S.school.year; const g = T.statGrade;
+  const st = statsOf(y, g); const total = st.vs.length;
+  const maxM = Math.max(1, ...st.monthTot);
+  const lastWith = st.monthTot.reduce((a, n, i) => n ? i : a, 0);
+  const selM = T.statMonth ?? (Number(y) === S.school.year ? mIndex(now()) : lastWith);
+  const topSym = Object.entries(st.symByMonth[selM]).sort((a, b) => b[1] - a[1]).slice(0, 5); const topMax = Math.max(1, ...(topSym.map((x) => x[1])));
+  const shade = (v) => v >= 45 ? ['#0F766E', '#fff'] : v >= 35 ? ['#5BAEA1', '#1A2421'] : v >= 25 ? ['#93CBC0', '#1A2421'] : v >= 15 ? ['#C3E2DB', '#1A2421'] : v >= 5 ? ['#E3F1EE', '#1A2421'] : ['#F5F7F6', '#5B6763'];
+  const catRows = CATS.map((c) => ({ c, vals: st.mat[c], s: sum(st.mat[c]) })).filter((r) => r.s > 0 || total === 0);
+  const careList2 = Object.entries(st.care).sort((a, b) => b[1] - a[1]).slice(0, 12); const cmax = Math.max(1, ...careList2.map((x) => x[1]));
+  const gradeList = Object.entries(st.grades).sort((a, b) => a[0] - b[0]); const gmax = Math.max(1, ...gradeList.map((x) => x[1]));
+  const topCat = catRows.slice().sort((a, b) => b.s - a.s)[0];
+  return topbar('stats') + `<main class="wrap" style="max-width:1400px"><div class="stack">
+  <div class="between" style="align-items:flex-end"><div><h1 style="font-size:26px;font-weight:900">보건실 이용 통계</h1><div class="small muted">증상은 계통별로 묶어 세요(학생이 고른 첫 증상 기준). 짝은 설정에서 바꿀 수 있어요.</div></div>
+  <div class="row noprint"><label class="row small" style="gap:6px"><span class="muted">학년도</span><select data-act-change="statYear">${years.map((x) => `<option value="${x}" ${x === Number(y) ? 'selected' : ''}>${x}학년도</option>`).join('')}</select></label><label class="row small" style="gap:6px"><span class="muted">학년</span><select data-act-change="statGrade"><option value="all">전체</option>${[1, 2, 3, 4, 5, 6].map((x) => `<option value="${x}" ${String(g) === String(x) ? 'selected' : ''}>${x}학년</option>`).join('')}</select></label><button class="btn ghost" data-act="doPrint">보고서 인쇄</button><button class="btn" data-act="statXlsx">엑셀로 내려받기</button></div></div>
+  <div class="tiles"><div class="tile"><div class="muted small">보건실 이용</div><div class="v">${total.toLocaleString('ko-KR')}건</div></div><div class="tile"><div class="muted small">가장 많은 계통</div><div class="v">${topCat && topCat.s ? esc(topCat.c) : '-'}</div></div><div class="tile"><div class="muted small">가장 붐빈 달</div><div class="v">${total ? MONTHS[st.monthTot.indexOf(Math.max(...st.monthTot))] : '-'}</div></div><div class="tile"><div class="muted small">조퇴·병원</div><div class="v">${st.vs.filter((v) => ['early', 'hospital', 'transfer'].includes(v.result)).length}건</div></div></div>
+  <div class="cols">
+    <section class="card stack" style="flex:999 1 620px;min-width:0"><div class="between"><h2 style="font-size:18px">월별 이용 건수</h2><span class="xs muted">막대를 누르면 오른쪽에 그달 증상이 나와요</span></div>
+      <div style="height:220px;display:flex;align-items:flex-end;gap:8px;border-bottom:1px solid #B8C6C1">${st.monthTot.map((n, i) => { const best = CATS.map((c) => [c, st.mat[c][i]]).sort((a, b) => b[1] - a[1])[0]; const tip = `${MONTHS[i]} ${n}건` + (n ? ` · 많은 계통 ${best[0]} ${best[1]}건` : ''); return `<button class="monthbar" data-tip="${esc(tip)}" ${i > 8 ? 'data-tip-pos="left"' : ''} aria-label="${esc(tip)}" aria-pressed="${selM === i}" data-act="statMonth" data-arg="${i}" style="flex:1;height:100%;background:transparent;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px"><span class="xs muted">${n}</span><span class="mb" style="width:70%;max-width:30px;height:${Math.round(n / maxM * 170)}px;background:${selM === i ? '#0F766E' : '#93CBC0'};border-radius:4px 4px 0 0"></span></button>`; }).join('')}</div>
+      <div style="display:flex;gap:8px">${MONTHS.map((m, i) => `<div class="xs" style="flex:1;text-align:center;color:${selM === i ? 'var(--teal-d)' : 'var(--muted)'};font-weight:${selM === i ? 700 : 400}">${m}</div>`).join('')}</div>
+    </section>
+    <section class="card stack" style="flex:1 1 320px;min-width:0"><h2 style="font-size:18px">${MONTHS[selM]}에 많이 온 증상</h2><div class="small muted">이달 ${st.monthTot[selM]}건</div>
+      ${topSym.length ? topSym.map(([s, n], i) => `<div class="stack" style="gap:4px"><div class="between small"><span><b>${i + 1}</b> ${esc(SYM_SHORT[s])} <span class="xs muted">${esc(S.symCat[s] || '')}</span></span><b>${n}건</b></div><div style="height:8px;background:#EEF2F0;border-radius:4px"><div style="height:8px;width:${Math.round(n / topMax * 100)}%;background:var(--teal);border-radius:4px"></div></div></div>`).join('') : '<div class="muted small">이달 기록이 없어요</div>'}
+    </section>
+  </div>
+  <section class="card stack"><div class="between"><h2 style="font-size:18px">계통별 · 월별 이용 건수</h2><div class="row xs muted" style="gap:6px">적음${['#E3F1EE', '#C3E2DB', '#93CBC0', '#5BAEA1', '#0F766E'].map((c) => `<span style="width:22px;height:14px;border-radius:3px;background:${c};display:inline-block"></span>`).join('')}많음</div></div>
+    <div class="scroll"><table class="heat" style="width:100%;min-width:980px;border-collapse:separate;border-spacing:3px;font-size:14px"><thead><tr class="muted"><th style="text-align:left;padding:6px 8px">계통</th>${MONTHS.map((m) => `<th style="padding:6px 0;width:58px">${m}</th>`).join('')}<th style="text-align:right;padding:6px 8px">합계</th><th style="text-align:right;padding:6px 8px">비율</th></tr></thead><tbody>
+    ${catRows.map((r) => `<tr><th style="text-align:left;padding:6px 8px;white-space:nowrap">${esc(r.c)}</th>${r.vals.map((n, i) => { const [bg, fg] = shade(n); return `<td data-tip="${esc(r.c)} · ${MONTHS[i]} ${n}건${total ? ' (그달의 ' + (st.monthTot[i] ? Math.round(n / st.monthTot[i] * 100) : 0) + '%)' : ''}" style="padding:7px 0;background:${bg};color:${fg}">${n}</td>`; }).join('')}<td style="text-align:right;padding:6px 8px;font-weight:700">${r.s}</td><td style="text-align:right;padding:6px 8px" class="muted">${total ? (r.s / total * 100).toFixed(1) : '0.0'}%</td></tr>`).join('')}
+    <tr><th style="text-align:left;padding:8px">합계</th>${st.monthTot.map((n) => `<td style="font-weight:700;padding:8px 0">${n}</td>`).join('')}<td style="text-align:right;padding:8px;font-weight:900">${total}</td><td style="text-align:right;padding:8px" class="muted">100%</td></tr></tbody></table></div>
+  </section>
+  <div class="cols">
+    <section class="card stack" style="flex:1 1 420px;min-width:0"><h2 style="font-size:18px">처치 종류별 건수 <span class="small muted" style="font-weight:400">한 번에 여러 처치를 하면 각각 세요</span></h2>${careList2.length ? careList2.map(([n, c]) => `<div class="bar" data-tip="${esc(n)} ${c}건 · 이용 ${total}건 가운데 ${total ? Math.round(c / total * 100) : 0}%"><span>${esc(n)}</span><div class="tr"><div class="fl" style="width:${Math.round(c / cmax * 100)}%"></div></div><b style="text-align:right">${c}</b></div>`).join('') : '<div class="muted small">기록이 없어요</div>'}</section>
+    <section class="card stack" style="flex:1 1 420px;min-width:0"><h2 style="font-size:18px">학년별 이용 건수</h2>${gradeList.length ? gradeList.map(([n, c]) => `<div class="bar" data-tip="${n}학년 ${c}건 · 전체의 ${total ? Math.round(c / total * 100) : 0}%"><span>${n}학년</span><div class="tr"><div class="fl" style="width:${Math.round(c / gmax * 100)}%"></div></div><b style="text-align:right">${c}</b></div>`).join('') : '<div class="muted small">기록이 없어요</div>'}</section>
+  </div></div></main>`;
+}
+
+/* ---------- 기록부 출력 ---------- */
+function vPrint() {
+  const d = T.printDate;
+  const list = S.visits.filter((v) => v.status === 'done' && ymd(v.at) === d).sort((a, b) => a.at - b.at);
+  const dt = new Date(d + 'T00:00:00');
+  const res = {}; list.forEach((v) => { res[v.result] = (res[v.result] || 0) + 1; });
+  return topbar('print') + `<main class="wrap" style="max-width:1200px"><div class="stack">
+  <div class="row noprint"><label class="row small" style="gap:6px"><span class="muted">날짜</span><input type="date" value="${esc(d)}" data-act-change="printDate"></label><label class="check small"><input type="checkbox" ${S.settings.approval ? 'checked' : ''} data-act="toggleApproval" style="width:18px;height:18px;accent-color:var(--teal)">결재칸 넣기</label><button class="btn" data-act="doPrint">인쇄하기</button><span class="xs muted">인쇄 창에서 'PDF로 저장'을 고르면 파일로도 남길 수 있어요</span></div>
+  <div class="card printsheet" style="padding:36px 40px">
+    <div class="between" style="align-items:flex-start"><div><h1 style="font-size:26px;font-weight:900">보건실 이용 기록부</h1><div style="margin-top:6px">${dt.getFullYear()}년 ${dt.getMonth() + 1}월 ${dt.getDate()}일(${WD[dt.getDay()]}) · ${esc(S.school.name)} 보건실</div></div>
+    ${S.settings.approval ? '<table style="width:auto;text-align:center;font-size:13px"><tr><td rowspan="2" style="width:22px;line-height:1.3">결<br>재</td><td style="width:72px">보건교사</td><td style="width:72px">교감</td><td style="width:72px">교장</td></tr><tr><td style="height:46px"></td><td></td><td></td></tr></table>' : ''}</div>
+    <table style="margin-top:18px"><thead><tr><th style="width:28px">순</th><th style="width:48px">접수</th><th style="width:84px;white-space:nowrap">학년-반-번</th><th style="width:60px">이름</th><th>부위 · 증상</th><th>처치 내용</th><th style="width:150px">투약</th><th style="width:104px">조치</th><th style="width:48px">퇴실</th></tr></thead><tbody>
+    ${list.length ? list.map((v, i) => { const s2 = v.snap || student(v.sid) || {}; return `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${hm(v.at)}</td><td style="text-align:center">${clsText(s2)}</td><td style="text-align:center">${esc(s2.name)}</td><td>${esc(whatText(v))}</td><td>${esc([careText(v), v.temp ? '체온 ' + v.temp + '℃' : '', (v.calls || []).map((c) => '보호자(' + c.rel + ') 통화 ' + hm(c.at)).join(', ')].filter(Boolean).join(', '))}</td><td>${esc((v.drugs || []).map((x) => `${x.name} ${x.qty}${x.unit}`).join(', ') || '-')}</td><td>${esc(RESULT_LABEL[v.result] || '')}</td><td style="text-align:center">${v.doneAt ? hm(v.doneAt) : ''}</td></tr>`; }).join('') : '<tr><td colspan="9" style="text-align:center;padding:20px">이날 기록이 없어요</td></tr>'}
+    </tbody></table>
+    <div style="margin-top:14px;font-size:14px">총 ${list.length}건${RESULTS.filter(([id]) => res[id]).map(([id, l]) => ` · ${l} ${res[id]}`).join('')} · 투약 ${list.filter((v) => (v.drugs || []).length).length}건</div>
+    <div class="between" style="margin-top:24px;font-size:12px;color:#444"><span>출력 ${kdate(now())} ${hm(now())} · 똑똑! 보건실 접수 도우미</span><span>1 / 1</span></div>
+  </div></div></main>`;
+}
+
+/* ---------- 설정 ---------- */
+function vConfig() {
+  const days = [1, 2, 3, 4, 5];
+  const cs = T.careSym;
+  return topbar('config') + `<main class="wrap" style="max-width:1400px"><div class="stack">
+  <h1 style="font-size:26px;font-weight:900">설정</h1>
+  <div class="cols">
+  <section class="card stack" style="flex:999 1 640px;min-width:0"><div class="between"><h2 style="font-size:19px">수업 일정 · 바깥 화면 위치</h2><span class="small muted">칸에 장소를 적으면 그 시간에 학생 화면이 접수를 닫고 위치만 보여 줘요. 비우면 보건실이에요.</span></div>
+    <div class="scroll"><table class="t" style="min-width:640px"><thead><tr><th>시간</th>${days.map((d) => `<th>${WD[d]}</th>`).join('')}</tr></thead><tbody>
+    ${S.periods.map((p, pi) => `<tr><td style="white-space:nowrap"><input type="text" value="${esc(p.label)}" data-bind-period="${pi}|label" aria-label="시간 이름" style="width:70px;height:36px"><div class="row" style="gap:4px;margin-top:4px"><input type="time" value="${p.start}" data-bind-period="${pi}|start" aria-label="${esc(p.label)} 시작" style="height:34px;padding:0 6px"><input type="time" value="${p.end}" data-bind-period="${pi}|end" aria-label="${esc(p.label)} 끝" style="height:34px;padding:0 6px"></div></td>${days.map((d) => `<td><input type="text" value="${esc((S.schedule[d] || {})[p.key] || '')}" placeholder="보건실" data-bind-sched="${d}|${p.key}" aria-label="${WD[d]} ${esc(p.label)} 장소" style="width:100%;height:40px;${(S.schedule[d] || {})[p.key] ? 'background:var(--or-s);border-color:var(--or-l)' : ''}"></td>`).join('')}</tr>`).join('')}
+    </tbody></table></div></section>
+  <section class="card stack" style="flex:1 1 340px;min-width:0"><h2 style="font-size:19px">학교·화면</h2>
+    <label class="f">학교 이름<input id="cfgName" type="text" value="${esc(S.school.name)}" data-bind-s="school.name"></label>
+    <label class="check small"><input type="checkbox" ${S.settings.maskName ? 'checked' : ''} data-act="cfgToggle" data-arg="maskName" style="width:18px;height:18px;accent-color:var(--teal)">학생 화면에서 부를 때도 이름 가운데 글자 가리기</label>
+    <label class="check small"><input type="checkbox" ${S.settings.chime ? 'checked' : ''} data-act="cfgToggle" data-arg="chime" style="width:18px;height:18px;accent-color:var(--teal)">부를 때 딩동 소리 내기</label>
+    <label class="f">선생님 화면 잠금 번호 <span class="xs" style="font-weight:400">학생 화면에서 '선생님'을 누를 때 물어봐요 · 비우면 잠그지 않아요</span><input id="cfgPin" type="password" inputmode="numeric" value="${esc(S.settings.pin)}" data-bind-s="settings.pin"></label>
+  </section></div>
+
+  <section id="kioskCard" class="card stack" style="border:2px solid var(--teal)"><h2 style="font-size:19px">학생 화면(태블릿) 연결</h2>
+    <div class="cols" style="gap:24px;align-items:center">
+      <div style="flex:0 0 auto;text-align:center" class="stack"><div id="qrBox" style="width:200px;height:200px;margin:0 auto">${qrSvg(kioskUrl())}</div><div class="xs muted">태블릿 카메라로 찍으면 학생 화면이 열려요</div></div>
+      <div style="flex:1 1 320px;min-width:0" class="stack">
+        <div><div class="small muted">학교 코드</div><div style="font-size:40px;font-weight:900;letter-spacing:6px">${esc(S.school.code)}</div></div>
+        <ol style="margin:0;padding-left:20px;line-height:1.8;font-size:15px"><li>태블릿으로 QR을 찍거나, 똑똑! 학생 화면에서 학교 코드 6자리를 눌러요.</li><li>열린 화면을 <b>홈 화면에 추가</b>하면 '똑똑! 학생' 아이콘이 생겨요. 다음부터는 아이콘만 누르면 이 학교 학생 화면이 열려요.</li><li>'전체 화면'을 누르고 보건실 앞에 세워 두세요.</li></ol>
+        <div class="note g small">학생 화면에는 선생님 화면으로 가는 단추가 없어요. 끝낼 때는 화면 왼쪽 위 로고를 3초 동안 누른 뒤 ${S.settings.pin ? '잠금 번호' : '학교 코드'}를 넣어요.</div>
+        <div class="row"><input type="text" readonly value="${esc(kioskUrl())}" aria-label="학생 화면 주소" style="flex:1 1 260px" onfocus="this.select()"><button class="btn ghost" data-act="copyKiosk">주소 복사</button><a class="btn ghost" href="#kiosk-${S.school.code}" target="_blank" rel="noopener">새 창으로 열기 (시험)</a><button class="link" style="color:var(--or-d)" data-act="newKioskCode">학교 코드 바꾸기</button></div>
+      </div></div>
+  </section>
+
+  <section class="card stack"><div class="between"><h2 style="font-size:19px">명렬표·보호자 번호 <span class="small muted" style="font-weight:400">${S.roster.length}명</span></h2>
+    <div class="row"><button class="btn ghost" data-act="rosterTemplate">양식 내려받기</button><label class="btn" style="cursor:pointer">엑셀·CSV 올리기<input type="file" accept=".xlsx,.xls,.csv" data-act-change="rosterFile" style="display:none"></label></div></div>
+    <div class="small muted">양식 열: 학년 · 반 · 번호 · 이름 · 보호자1 관계 · 보호자1 전화 · 보호자2 관계 · 보호자2 전화 · 주의 메모. 올리면 지금 명단을 바꿔요. 새 학년도에는 지난해 학생과 이름·학년으로 자동으로 이어져요.</div>
+    ${T.rosterPreview ? `<div class="note t stack" style="color:var(--ink)"><b>${T.rosterPreview.list.length}명을 읽었어요${T.rosterPreview.linked ? ` · 지난해 기록과 이어질 학생 ${T.rosterPreview.linked}명` : ''}</b><div class="row"><button class="btn" data-act="rosterApply">이 명단으로 바꾸기</button><button class="link" data-act="rosterCancel">취소</button></div></div>` : ''}
+    ${S.roster.length ? `<div class="scroll" style="max-height:340px;overflow:auto"><table class="t" style="min-width:700px"><thead><tr><th>학년-반-번</th><th>이름</th><th>보호자</th><th>주의 메모</th></tr></thead><tbody>${S.roster.slice().sort((a, b) => a.grade - b.grade || a.cls - b.cls || a.num - b.num).map((s) => `<tr><td>${clsText(s)}</td><td>${esc(s.name)}</td><td class="small">${esc((s.guardians || []).filter((g) => g.phone).map((g) => g.rel + ' ' + g.phone).join(' · ') || '-')}</td><td class="small muted">${esc(s.note || '')}</td></tr>`).join('')}</tbody></table></div>` : ''}
+  </section>
+
+  <div class="cols">
+  <section class="card stack" style="flex:999 1 560px;min-width:0"><h2 style="font-size:19px">증상별 처치 목록</h2><div class="small muted">기본 처치는 그대로 두고, 학교에서 자주 하는 처치를 더할 수 있어요. 처치 화면에서 '저장해서 다음부터 보여 주기'로 더한 것도 여기 모여요.</div>
+    <div class="chips">${Object.keys(SYM).map((s) => `<button class="chip ${cs === s ? 'on' : ''}" data-act="careSym" data-arg="${s}">${SYM_SHORT[s]}</button>`).join('')}</div>
+    <div class="note g stack"><b>${esc(SYM[cs])}</b><div class="chips">${(DEFAULT_CARE[cs] || []).map((c) => `<span class="tag">${esc(c)}</span>`).join('')}${(S.careCustom[cs] || []).map((c, i) => `<span class="tag t">${esc(c)} <button class="link xs" aria-label="${esc(c)} 지우기" data-act="careDel" data-arg="${i}" style="padding:0 0 0 4px">×</button></span>`).join('')}</div>
+    <div class="row" style="flex-wrap:nowrap"><input id="careNew" type="text" placeholder="더할 처치" style="flex:1" data-enter="careAdd"><button class="btn line" data-act="careAdd">더하기</button></div></div>
+  </section>
+  <section class="card stack" style="flex:1 1 360px;min-width:0"><h2 style="font-size:19px">증상과 계통 짝 (통계용)</h2>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">${Object.keys(SYM).map((s) => `<label class="f" style="font-weight:400">${SYM_SHORT[s]}<select data-act-change="symCat" data-arg="${s}">${CATS.map((c) => `<option ${S.symCat[s] === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>`).join('')}</div>
+  </section></div>
+
+  <section class="card stack"><h2 style="font-size:19px">자료 보관</h2><div class="small muted">이 판은 이 기기 안에만 저장돼요. 기기를 바꾸거나 브라우저 기록을 지우기 전에 백업 파일로 내려받아 두세요.</div>
+    <div class="row"><button class="btn ghost" data-act="backup">백업 파일 내려받기</button><label class="btn ghost" style="cursor:pointer">백업 파일로 되살리기<input type="file" accept=".json" data-act-change="restore" style="display:none"></label><button class="btn warn" data-act="wipe">모든 자료 지우기</button></div>
+    <div class="xs muted">판 ${VERSION} · ${esc(creditText())} · 교육용으로 자유롭게 쓸 수 있어요</div></section>
+  </div></main>`;
+}
+
+/* ---------- 학년도 마감 ---------- */
+function vYearEnd() {
+  const done = S.visits.filter((v) => v.status === 'done'); const open = S.visits.filter((v) => v.status === 'wait' || v.status === 'called');
+  const y = S.school.year; const ok = T.ye.typed.trim() === `${y} 마감`;
+  const first = done.length ? Math.min(...done.map((v) => v.at)) : null;
+  return topbar('year-end') + `<main class="wrap" style="max-width:1100px"><div class="stack">
+  <div><h1 style="font-size:28px;font-weight:900">${y}학년도 자료 마감</h1><p class="muted" style="margin:6px 0 0;line-height:1.55">올해 기록을 엑셀 파일 하나로 내려받은 뒤, 학생 명단을 비우고 ${y + 1}학년도를 새로 시작해요. 올해 기록은 앱 안 '지난 학년도'에도 남아서, 새 명단의 학생과 이어서 볼 수 있어요.</p></div>
+  <section class="card stack"><h2 style="font-size:19px"><span style="color:var(--teal)">1</span> 올해 기록 확인</h2>
+    <div class="tiles"><div class="tile"><div class="muted small">보건실 이용</div><div class="v">${done.length}건</div></div><div class="tile"><div class="muted small">이용한 학생</div><div class="v">${uniq(done.map((v) => v.sid)).length}명</div></div><div class="tile"><div class="muted small">투약</div><div class="v">${done.filter((v) => (v.drugs || []).length).length}건</div></div><div class="tile"><div class="muted small">기록 기간</div><div style="font-size:18px;font-weight:700;margin-top:4px">${first ? kdate(first) + ' ~ ' + kdate(now()) : '-'}</div></div></div>
+    ${open.length ? `<div class="small b" style="color:var(--or-d)">처치를 마치지 않은 접수가 ${open.length}건 있어요 · <a href="#teacher">먼저 마무리하기</a></div>` : ''}
+  </section>
+  <section class="card stack"><h2 style="font-size:19px"><span style="color:var(--teal)">2</span> 마감 파일</h2>
+    <div class="between" style="border:1px solid var(--line);border-radius:12px;padding:14px 16px"><div><b>${y}학년도_보건실기록_${esc(S.school.name)}.xlsx</b><div class="small muted">전체 이용 기록 · 학생별 방문 횟수 · 월별·계통별 통계 · 투약 기록 · 약 재고</div></div><button class="btn ghost" data-act="yeDownload">미리 내려받기</button></div>
+    <label class="check small"><input type="checkbox" ${T.ye.noPhone ? 'checked' : ''} data-act="yeNoPhone" style="width:18px;height:18px;accent-color:var(--teal)">마감 파일과 지난 학년도 보관 자료에서 보호자 전화번호 빼기</label>
+  </section>
+  <section class="card stack"><h2 style="font-size:19px"><span style="color:var(--teal)">3</span> ${y + 1}학년도 새로 시작</h2>
+    <div class="tiles"><div class="note or"><b>비워지는 것</b><br>명렬표·보호자 번호<br>올해 접수·처치 기록 (파일과 지난 학년도로 옮겨짐)</div><div class="note g"><b>그대로 남는 것</b><br>약 목록과 재고<br>증상별 처치 목록<br>수업 일정·설정</div><div class="note g" style="background:#fff;border:1px dashed #B8C6C1"><b>새 학년도에 넣을 것</b><br>새 명렬표 (설정에서 올리기)<br>새 수업 일정</div></div>
+    <label class="small" for="yeIn" style="line-height:1.5">마감하면 되돌릴 수 없어요. 확인을 위해 <b>${y} 마감</b>이라고 적어 주세요.</label>
+    <div class="row"><input id="yeIn" type="text" placeholder="${y} 마감" value="${esc(T.ye.typed)}" data-bind-ye="typed" style="width:220px;height:52px"><button class="btn warn" style="height:52px" data-act="yeClose" ${ok ? '' : 'disabled'}>파일 내려받고 ${y + 1}학년도 시작</button></div>
+  </section>
+  <section class="card stack"><h2 style="font-size:17px">지난 학년도 기록</h2>${S.archives.length ? S.archives.slice().sort((a, b) => b.year - a.year).map((a) => `<div class="between" style="border-bottom:1px solid #EEF2F0;padding:8px 0"><span>${a.year}학년도 · ${a.visits.length}건 <span class="xs muted">${kdate(a.closedAt)} 마감</span></span><button class="link" data-act="arDownload" data-arg="${a.year}">내려받기</button></div>`).join('') : '<div class="muted small">아직 마감한 학년도가 없어요</div>'}</section>
+  </div></main>`;
+}
+
+/* ---------- QR ---------- */
+function qrSvg(text) {
+  if (!window.qrcode) { setTimeout(() => { if (window.qrcode && document.getElementById('qrBox')) document.getElementById('qrBox').innerHTML = qrSvg(text); }, 800); return '<div class="muted small" style="padding-top:80px">QR 불러오는 중…</div>'; }
+  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  const n = q.getModuleCount(); let d = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c + 2} ${r + 2}h1v1h-1z`;
+  return `<svg viewBox="0 0 ${n + 4} ${n + 4}" width="200" height="200" role="img" aria-label="학생 화면 QR"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#1A2421"/></svg>`;
+}
+
+/* ---------- 엑셀 ---------- */
+function readTable(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    const isCsv = /\.csv$/i.test(file.name);
+    r.onload = () => {
+      try {
+        if (window.XLSX && !isCsv) { const wb = XLSX.read(new Uint8Array(r.result), { type: 'array' }); const ws = wb.Sheets[wb.SheetNames[0]]; res(XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false })); }
+        else if (isCsv) { res(parseCSV(typeof r.result === 'string' ? r.result : new TextDecoder().decode(r.result))); }
+        else rej(new Error('엑셀을 읽는 도구를 불러오지 못했어요. 인터넷 연결을 확인하거나 CSV로 저장해서 올려 주세요.'));
+      } catch (e) { rej(e); }
+    };
+    r.onerror = () => rej(r.error);
+    if (isCsv) r.readAsText(file, 'utf-8'); else r.readAsArrayBuffer(file);
+  });
+}
+function parseCSV(text) {
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+    else if (c === '"') q = true; else if (c === ',') { row.push(cell); cell = ''; } else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; } else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.map((r) => r.map((x) => x.replace(/^﻿/, '')));
+}
+function download(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+function writeBook(filename, sheets) {
+  if (window.XLSX) { const wb = XLSX.utils.book_new(); Object.entries(sheets).forEach(([n, aoa]) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), n.slice(0, 31))); XLSX.writeFile(wb, filename); return; }
+  const [n, aoa] = Object.entries(sheets)[0];
+  const csv = aoa.map((r) => r.map((c) => { const s = String(c ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\r\n');
+  download(filename.replace(/\.xlsx$/, '') + '_' + n + '.csv', new Blob(['﻿' + csv], { type: 'text/csv' }));
+  toast('엑셀 도구를 불러오지 못해 첫 시트만 CSV로 내려받았어요');
+}
+function yearBook(y, visits, roster, noPhone) {
+  const done = visits.filter((v) => v.status === 'done').sort((a, b) => a.at - b.at);
+  const rows = [['날짜', '접수', '학년', '반', '번호', '이름', '부위', '증상', '언제부터', '처치', '직접 입력 처치', '투약', '체온', '보호자 연락', '조치', '퇴실', '메모']];
+  done.forEach((v) => { const s = v.snap || {}; rows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, (v.parts || []).map((p) => PART_LABEL[p]).join(', '), (v.sym || []).map((x) => SYM_SHORT[x]).join(', '), (SINCE.find((x) => x[0] === v.since) || [])[1] || '', (v.cares || []).join(', '), (v.custom || []).join(', '), drugText(v), v.temp || '', (v.calls || []).map((c) => c.rel + ' ' + hm(c.at)).join(', '), RESULT_LABEL[v.result] || '', v.doneAt ? hm(v.doneAt) : '', v.memo || '']); });
+  const per = {}; done.forEach((v) => { const s = v.snap || {}; const k = v.sid; per[k] = per[k] || { s, n: 0, d: 0 }; per[k].n++; if ((v.drugs || []).length) per[k].d++; });
+  const perRows = [['학년', '반', '번호', '이름', '방문 횟수', '투약 횟수']].concat(Object.values(per).sort((a, b) => b.n - a.n).map((p) => [p.s.grade, p.s.cls, p.s.num, p.s.name, p.n, p.d]));
+  const mat = Object.fromEntries(CATS.map((c) => [c, Array(12).fill(0)])); done.forEach((v) => { mat[S.symCat[(v.sym || [])[0]] || '기타'][mIndex(v.at)]++; });
+  const statRows = [['계통', ...MONTHS, '합계']].concat(CATS.map((c) => [c, ...mat[c], sum(mat[c])])).concat([['합계', ...MONTHS.map((_, i) => sum(CATS.map((c) => mat[c][i]))), done.length]]);
+  const drugRows = [['날짜', '시각', '학년', '반', '번호', '이름', '약', '양']]; done.forEach((v) => (v.drugs || []).forEach((d) => { const s = v.snap || {}; drugRows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, d.name, d.qty + d.unit]); }));
+  const stockRows = [['약 이름', '종류', '남은 양', '단위', '유통기한(묶음별)', '보관 위치']].concat(S.drugs.map((d) => [d.name, d.kind, drugTotal(d), d.unit, d.lots.map((l) => kexp(l.exp) + ' ' + l.qty + d.unit).join(' / '), uniq(d.lots.map((l) => l.loc).filter(Boolean)).join(', ')]));
+  const sheets = { '전체 이용 기록': rows, '학생별 방문 횟수': perRows, '월별·계통별 통계': statRows, '투약 기록': drugRows, '약 재고': stockRows };
+  if (!noPhone && roster) sheets['명렬표·보호자'] = [['학년', '반', '번호', '이름', '보호자', '주의 메모']].concat(roster.map((s) => [s.grade, s.cls, s.num, s.name, (s.guardians || []).filter((g) => g.phone).map((g) => g.rel + ' ' + g.phone).join(' / '), s.note || '']));
+  return sheets;
+}
+function parseRoster(aoa) {
+  let h = aoa.findIndex((r) => r.some((c) => String(c).includes('이름')));
+  if (h < 0) throw new Error("'이름' 제목이 있는 줄을 찾지 못했어요. 양식을 내려받아 맞춰 주세요.");
+  const hdr = aoa[h].map((c) => String(c).replace(/\s/g, ''));
+  const col = (...keys) => hdr.findIndex((c) => keys.some((k) => c.includes(k)));
+  const ci = { grade: col('학년'), cls: hdr.findIndex((c) => c === '반' || (c.includes('반') && !c.includes('번'))), num: col('번호'), name: col('이름'), r1: col('보호자1관계', '보호자1'), p1: col('보호자1전화', '보호자1연락처', '전화1', '연락처1'), r2: col('보호자2관계', '보호자2'), p2: col('보호자2전화', '보호자2연락처', '전화2', '연락처2'), note: col('메모', '주의') };
+  if (ci.r1 === ci.p1) ci.r1 = -1; if (ci.r2 === ci.p2) ci.r2 = -1;
+  const get = (r, i) => i >= 0 ? String(r[i] ?? '').trim() : '';
+  const list = [];
+  aoa.slice(h + 1).forEach((r) => {
+    const name = get(r, ci.name); const grade = parseInt(get(r, ci.grade), 10); const cls = parseInt(get(r, ci.cls), 10); const num = parseInt(get(r, ci.num), 10);
+    if (!name || !grade || !cls || !num) return;
+    const guardians = [];
+    if (get(r, ci.p1)) guardians.push({ rel: get(r, ci.r1) || '보호자', phone: get(r, ci.p1) });
+    if (get(r, ci.p2)) guardians.push({ rel: get(r, ci.r2) || '보호자', phone: get(r, ci.p2) });
+    list.push({ id: uid(), grade, cls, num, name, guardians, note: get(r, ci.note), prev: [] });
+  });
+  if (!list.length) throw new Error('학생을 한 명도 읽지 못했어요. 학년·반·번호·이름 열을 확인해 주세요.');
+  let linked = 0;
+  const last = S.archives.slice().sort((a, b) => b.year - a.year)[0];
+  const cur = S.roster;
+  list.forEach((s) => {
+    const same = cur.find((o) => o.name === s.name && o.grade === s.grade && o.cls === s.cls && o.num === s.num);
+    if (same) { s.id = same.id; s.prev = same.prev || []; if (!s.note) s.note = same.note || ''; return; }
+    if (last) { const c = last.roster.filter((o) => o.name === s.name && o.grade === s.grade - 1); if (c.length === 1) { s.prev = [{ year: last.year, sid: c[0].id }]; if (!s.note) s.note = c[0].note || ''; linked++; } }
+  });
+  return { list, linked };
+}
+function matchDrug(item) {
+  const n = (s) => String(s).replace(/[\s()（）\[\]]/g, '');
+  const it = n(item);
+  let best = S.drugs.find((d) => it.includes(n(d.name)) || n(d.name).includes(it));
+  if (!best) best = S.drugs.find((d) => { const words = d.name.split(/\s+/).filter((w) => w.length >= 2); return words.length && words.every((w) => it.includes(w)); });
+  return best;
+}
+function buildPurRows() {
+  const p = T.pur; const { name, spec, qty } = p.cols;
+  p.rows = [];
+  p.aoa.slice(p.hdr + 1).forEach((r) => {
+    const item = String(r[name] ?? '').trim(); if (!item || /^(합\s*계|소\s*계|계)$/.test(item)) return;
+    const qtyRaw = String(r[qty] ?? '').trim(); const qn = parseFloat(qtyRaw.replace(/[^0-9.]/g, '')); if (!qn) return;
+    const sp = spec >= 0 ? String(r[spec] ?? '').trim() : '';
+    const d = matchDrug(item);
+    const m = (sp + ' ' + item).match(/(\d+)\s*(정|매|포|개|병|캡슐|T)\s*(\/|입|씩)/);
+    let into = qn; let unit = '개';
+    if (m) { unit = m[2] === 'T' ? '정' : m[2]; if (!d || d.unit === unit) into = qn * Number(m[1]); }
+    p.rows.push({ item, spec: sp, qtyRaw, match: d ? d.id : '__new', into: Math.round(into), unit: d ? d.unit : unit, exp: '', loc: '', use: true });
+  });
+}
+function deduct(d, qty, note) {
+  let left = qty;
+  d.lots.slice().sort((a, b) => a.exp.localeCompare(b.exp)).forEach((l) => { const take = Math.min(l.qty, left); l.qty -= take; left -= take; });
+  d.lots = d.lots.filter((l) => l.qty > 0);
+  S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: -qty, qtyText: qty + d.unit, note });
+}
+
+/* ---------- 예시 자료 ---------- */
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function sampleData(name) {
+  const R = mulberry(20261123); const pick = (a) => a[Math.floor(R() * a.length)];
+  const s = blankState(); s.school.name = name || '햇살초등학교';
+  const sur = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '류', '홍'];
+  const giv = ['서준', '하윤', '도윤', '지우', '시우', '서아', '하준', '지안', '은우', '수아', '예준', '하은', '지호', '하늘', '유나', '도현', '지유', '시윤', '건우', '채원', '민재', '소율', '태윤', '다인', '주원', '서연', '우진', '나은', '지민', '윤서'];
+  for (let g = 1; g <= 6; g++) for (let c = 1; c <= 2; c++) for (let n = 1; n <= 18; n++) {
+    const nm = pick(sur) + pick(giv);
+    s.roster.push({ id: uid() + n, grade: g, cls: c, num: n, name: nm, guardians: [{ rel: '어머니', phone: '010-0000-' + String(1000 + Math.floor(R() * 8999)) }, ...(R() > 0.5 ? [{ rel: '아버지', phone: '010-0000-' + String(1000 + Math.floor(R() * 8999)) }] : [])], note: '', prev: [] });
+  }
+  s.schedule = { 1: { 3: '3학년 2반 교실', 4: '5학년 1반 교실' }, 2: { 2: '6학년 1반 교실', 5: '4학년 1반 교실' }, 3: { 1: '4학년 2반 교실', 4: '3학년 1반 교실' }, 4: { 3: '6학년 2반 교실' }, 5: { 2: '5학년 2반 교실' } };
+  const t0 = now(); const day = 86400000; const d0 = (n) => ymd(t0 + n * day);
+  const lots = { acet: [[d0(55), 18, '약장 2칸'], [d0(280), 30, '약장 2칸']], ibu: [[d0(130), 2, '약 냉장고']], keto: [[d0(430), 35, '처치대 서랍']], gel: [[d0(27), 1, '']], antacid: [[d0(190), 20, '약장 3칸']], digest: [[d0(340), 30, '약장 3칸']], oint: [[d0(220), 4, '처치대 서랍']], povi: [[d0(310), 2, '']] };
+  s.drugs.forEach((d) => { d.lots = (lots[d.id] || []).map(([exp, qty, loc]) => ({ id: uid(), exp, qty, loc })); });
+  s.stockLog.push({ at: t0 - 3 * day, did: 'acet', name: '아세트아미노펜 정', delta: 30, qtyText: '30정', note: '입고 · 약장 2칸' });
+  const symW = [['bruise', 22], ['cut', 18], ['stomach', 12], ['head', 10], ['fever', 7], ['sprain', 8], ['nausea', 4], ['nose', 5], ['cough', 5], ['muscle', 4], ['period', 3], ['bug', 2], ['eye', 2], ['tooth', 1], ['dizzy', 2], ['etc', 1]];
+  const wsum = sum(symW.map((x) => x[1]));
+  const pickSym = () => { let r = R() * wsum; for (const [k, w] of symW) { r -= w; if (r <= 0) return k; } return 'etc'; };
+  const partFor = (sym) => { const g = Object.entries(BYPART).filter(([, l]) => l.includes(sym)).map(([k]) => k); const grp = g.length ? pick(g) : 'limb'; const ids = [...PARTS_F, ...PARTS_B].map((p) => p[0]).filter((id) => partGroup(id) === grp); return pick(ids); };
+  const sy = schoolYear(t0); const start = new Date(sy, 2, 3).getTime(); const today0 = new Date(ymd(t0) + 'T00:00:00').getTime();
+  const factor = [1, 1.1, 1.2, 1, 0.7, 0.3, 1.1, 1, 1, 1, 0.1, 0.1];
+  for (let t = start; t < today0; t += day) {
+    const dd = new Date(t); const wd = dd.getDay(); if (wd === 0 || wd === 6) continue;
+    const m = dd.getMonth(); if (m === 7 && dd.getDate() < 20) continue; if (m === 6 && dd.getDate() > 22) continue;
+    const n = Math.round((2 + R() * 5) * factor[mIndex(t)]);
+    for (let i = 0; i < n; i++) {
+      const st = pick(s.roster); const sym = pickSym(); const at = t + (9 * 60 + Math.floor(R() * 330)) * 60000;
+      const cares = (DEFAULT_CARE[sym] || ['관찰']).filter(() => R() > 0.45).slice(0, 2); if (!cares.length) cares.push((DEFAULT_CARE[sym] || ['관찰'])[0]);
+      const dr = s.drugs.filter((d) => d.syms.includes(sym)); const drugs = dr.length && R() > 0.65 ? [{ id: dr[0].id, name: dr[0].name, qty: 1, unit: dr[0].counted ? dr[0].unit : '회' }] : [];
+      const rr = R(); const result = rr < 0.62 ? 'back' : rr < 0.88 ? 'restback' : rr < 0.95 ? 'early' : rr < 0.995 ? 'hospital' : 'transfer';
+      s.visits.push({ id: uid() + i, sid: st.id, snap: snap(st), at, parts: [partFor(sym)], sym: [sym], since: pick(['now', 'now', 'today', 'before']), status: 'done', calledAt: at + 180000, doneAt: at + (8 + Math.floor(R() * 25)) * 60000, cares, custom: [], drugs, temp: sym === 'fever' ? (37.5 + R()).toFixed(1) : '', memo: '', result, calls: result === 'early' ? [{ rel: '어머니', at: at + 600000 }] : [] });
+    }
+  }
+  [['bruise', 'f-leg-l'], ['head', 'f-head']].forEach(([sym, part], i) => { const st = s.roster[30 + i * 41]; s.visits.push({ id: uid() + 'q' + i, sid: st.id, snap: snap(st), at: t0 - (6 - i * 3) * 60000, parts: [part], sym: [sym], since: 'now', status: 'wait' }); });
+  return s;
+}
+
+/* ---------- 할 일 ---------- */
+const A = {
+  modalOk: () => { const i = document.getElementById('modalIn'); const v = i ? i.value : true; document.getElementById('overlay').innerHTML = ''; if (modalResolve) modalResolve(v); },
+  modalNo: () => { document.getElementById('overlay').innerHTML = ''; if (modalResolve) modalResolve(null); },
+  setupStart: () => { const n = document.getElementById('setupName').value.trim(); if (!n) { toast('학교 이름을 넣어 주세요'); return; } S.school.name = n; save(); go('start'); },
+  setupSample: () => { const n = document.getElementById('setupName').value.trim(); S = sampleData(n); save(); toast('예시 자료를 넣었어요'); go('start'); },
+  unlock: () => { const v = document.getElementById('pinIn').value; if (v === S.settings.pin) { try { sessionStorage.setItem('knockUnlocked', '1'); } catch (e) {} render(); } else toast('번호가 달라요'); },
+  // 학생 화면
+  kSound: () => { ensureAudio(); render(); if (K.sound) { const was = S.settings.chime; S.settings.chime = true; chime(); S.settings.chime = was; } },
+  kFull: () => { try { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); } catch (e) { toast('이 화면에서는 전체 화면을 쓸 수 없어요'); } },
+  codeKey: (k) => {
+    K.codeErr = ''; K.codeIn = K.codeIn || '';
+    if (k === 'del') K.codeIn = K.codeIn.slice(0, -1);
+    else if (k === 'ok') {
+      if (K.codeIn.length !== 6) { K.codeErr = '6자리를 모두 눌러 주세요'; }
+      else if (S.school.name && K.codeIn === S.school.code) { ls.set('knockKioskCode', K.codeIn); K.codeIn = ''; location.replace('#kiosk-' + S.school.code); kioskGate(); }
+      else { K.codeErr = S.school.name ? '학교 코드가 맞지 않아요' : '이 기기에 학교 자료가 없어요 · 이 판은 선생님 화면과 같은 기기에서만 이어져요'; K.codeIn = ''; }
+    } else if (K.codeIn.length < 6) K.codeIn += k;
+    render();
+  },
+  copyKiosk: async () => { try { await navigator.clipboard.writeText(kioskUrl()); toast('주소를 복사했어요'); } catch (e) { toast('복사하지 못했어요 · 주소를 직접 골라 복사해 주세요'); } },
+  newKioskCode: async () => { const ok = await ask('학교 코드를 바꿀까요?', '지금 연결된 태블릿은 새 코드를 다시 넣어야 열려요. 코드가 학생에게 알려졌을 때 써요.', '바꾸기', true); if (!ok) return; S.school.code = newCode(); save(); render(); },
+  kGrade: (a) => { K.grade = Number(a); K.cls = null; K.sid = null; render(); },
+  kCls: (a) => { K.cls = Number(a); K.sid = null; render(); },
+  kKid: (a) => { K.sid = a; render(); },
+  kReset: () => { resetKiosk(); render(); },
+  kToWhere: () => { if (!K.sid) return; K.step = 'where'; render(); },
+  kBack: () => { K.step = 'who'; render(); },
+  kPart: (a) => { K.parts[a] = !K.parts[a]; render(); },
+  kSym: (a) => { K.sym[a] = !K.sym[a]; render(); },
+  kSince: (a) => { K.since = a; render(); },
+  kSubmit: () => {
+    const st = student(K.sid); if (!st) return;
+    if (presence().away) { toast('지금은 접수를 받지 않아요'); render(); return; }
+    const picked = Object.keys(K.parts).filter((k) => K.parts[k]); const syms = allowedSyms(picked).filter((s) => K.sym[s]); if (!syms.length) return;
+    const v = { id: uid(), sid: st.id, snap: snap(st), at: now(), parts: picked, sym: syms, since: K.since, status: 'wait' };
+    S.visits.push(v); save(); K.lastVid = v.id; K.step = 'done'; K.doneAt = now(); render();
+  },
+  kCloseCall: () => { S.call = null; save(); render(); },
+  // 선생님
+  callNext: () => { const n = queue().find((x) => x.status === 'wait'); if (!n) return; A.callThis(n.id); },
+  callThis: (id) => { const v = S.visits.find((x) => x.id === id); if (!v) return; v.status = 'called'; v.calledAt = now(); S.call = { vid: v.id, at: now() }; T.cur = v.id; save(); render(); toast(`${(v.snap || {}).name} 학생을 불렀어요`); },
+  recall: () => { const v = curVisit(); if (!v) return; if (v.status === 'wait') { A.callThis(v.id); return; } S.call = { vid: v.id, at: now() }; save(); toast('다시 불렀어요'); },
+  pickVisit: (id) => { T.cur = id; render(); },
+  tCare: (a) => { const f = form(curVisit()); f.cares[a] = !f.cares[a]; render(); },
+  tDrug: (a) => { const f = form(curVisit()); if (f.drugs[a]) delete f.drugs[a]; else f.drugs[a] = 1; render(); },
+  tDrugQ: (a) => { const [id, d] = a.split('|'); const f = form(curVisit()); f.drugs[id] = Math.max(1, (f.drugs[id] || 1) + Number(d)); render(); },
+  tMore: () => { T.more = !T.more; render(); },
+  tCustomAdd: () => { const v = curVisit(); const f = form(v); const t = (f.draft || '').trim(); if (!t) return; if (!f.custom.includes(t)) f.custom.push(t); f.draft = ''; render(); },
+  tCustomDel: (i) => { const f = form(curVisit()); f.custom.splice(Number(i), 1); render(); },
+  tFav: () => { const f = form(curVisit()); f.saveFav = !f.saveFav; },
+  tCall: (i) => { const f = form(curVisit()); f.calls[i] = f.calls[i] ? 0 : now(); render(); },
+  tResult: (a) => { form(curVisit()).result = a; render(); },
+  saveVisit: (next) => {
+    const v = curVisit(); if (!v) return; const f = form(v); const st = student(v.sid) || {};
+    const cares = Object.keys(f.cares).filter((k) => f.cares[k]);
+    if (!cares.length && !f.custom.length && !Object.keys(f.drugs).length) { toast('처치를 하나 이상 골라 주세요'); return; }
+    v.cares = cares; v.custom = f.custom.slice(); v.temp = f.temp; v.memo = f.memo; v.result = f.result; v.status = 'done'; v.doneAt = now(); if (!v.calledAt) v.calledAt = v.at;
+    v.calls = Object.keys(f.calls).filter((k) => f.calls[k]).map((k) => ({ rel: (st.guardians || [])[k]?.rel || '보호자', at: f.calls[k] }));
+    v.drugs = S.drugs.filter((d) => f.drugs[d.id]).map((d) => { const q = f.drugs[d.id]; const note = `처치 · ${clsText(v.snap)} ${v.snap.name}`; if (d.counted) deduct(d, q, note); else S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: -0, qtyText: '사용 ' + q + '회', note }); return { id: d.id, name: d.name, qty: q, unit: d.counted ? d.unit : '회' }; });
+    if (f.saveFav && f.custom.length) { const k = (v.sym || ['etc'])[0]; S.careCustom[k] = uniq([...(S.careCustom[k] || []), ...f.custom]); }
+    delete T.f[v.id]; T.cur = null; if (S.call && S.call.vid === v.id) S.call = null; save();
+    toast('저장했어요');
+    if (next) A.callNext(); else render();
+  },
+  cancelVisit: async (id) => { const ok = await ask('접수를 취소할까요?', '학생이 돌아갔거나 잘못 접수했을 때 써요. 기록부에는 남지 않아요.', '접수 취소', true); if (!ok) return; const v = S.visits.find((x) => x.id === id); if (v) v.status = 'cancel'; T.cur = null; save(); render(); },
+  reopen: (id) => { const v = S.visits.find((x) => x.id === id); if (!v) return; T.f[v.id] = { cares: Object.fromEntries((v.cares || []).map((c) => [c, true])), drugs: Object.fromEntries((v.drugs || []).map((d) => [d.id, d.qty])), custom: (v.custom || []).slice(), draft: '', saveFav: false, temp: v.temp || '', memo: v.memo || '', result: v.result || 'back', calls: {} };
+    (v.drugs || []).forEach((d) => { const dr = S.drugs.find((x) => x.id === d.id); if (dr && dr.counted) { dr.lots.push({ id: uid(), exp: dr.lots.map((l) => l.exp).sort()[0] || ymd(now() + 365 * 86400000), qty: d.qty, loc: '' }); S.stockLog.unshift({ at: now(), did: dr.id, name: dr.name, delta: d.qty, qtyText: d.qty + dr.unit, note: '기록 고치기로 되돌림' }); } });
+    v.status = 'called'; T.cur = v.id; save(); render(); window.scrollTo(0, 0); },
+  walkOpen: () => { T.walk = T.walk ? null : { grade: '', cls: '', sid: '', sym: '' }; render(); },
+  walkClose: () => { T.walk = null; render(); },
+  walkAdd: () => { const w = T.walk; const st = student(w.sid); if (!st || !w.sym) { toast('학생과 증상을 골라 주세요'); return; } const v = { id: uid(), sid: st.id, snap: snap(st), at: now(), parts: [], sym: [w.sym], since: 'now', status: 'called', calledAt: now() }; S.visits.push(v); T.cur = v.id; T.walk = null; save(); render(); },
+  openHist: (sid) => { T.histSid = sid; T.histTab = 'all'; go('history'); },
+  histBack: () => { T.histSid = null; render(); },
+  histTab: (a) => { T.histTab = a; render(); },
+  toKioskCard: () => { go('config'); setTimeout(() => { const el = document.getElementById('kioskCard'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 60); },
+  toggleApproval: () => { S.settings.approval = !S.settings.approval; save(); render(); },
+  doPrint: () => { try { window.print(); } catch (e) { toast('이 화면에서는 인쇄할 수 없어요'); } },
+  // 약품
+  intakeMode: (a) => { T.intake = a; render(); },
+  intakeOne: () => { const d = S.drugs.find((x) => x.id === T.form.drug) || S.drugs[0]; const q = parseInt(T.form.qty, 10); if (!d || !q || !T.form.exp) { toast('양과 유통기한을 적어 주세요'); return; } d.lots.push({ id: uid(), exp: T.form.exp, qty: q, loc: T.form.loc.trim() }); S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: q, qtyText: q + d.unit, note: `입고 · 유통기한 ${kexp(T.form.exp)}${T.form.loc ? ' · ' + T.form.loc : ''}` }); T.form.qty = ''; T.form.loc = ''; save(); render(); toast(`${d.name} ${q}${d.unit} 입고했어요`); },
+  lotOut: async (a) => { const [did, lid] = a.split('|'); const d = S.drugs.find((x) => x.id === did); const l = d && d.lots.find((x) => x.id === lid); if (!l) return; const v = await ask('폐기·빼기', `${esc(d.name)} ${kexp(l.exp)} 묶음에서 뺄 양을 적어 주세요 (지금 ${l.qty}${esc(d.unit)}). 다 빼려면 그대로 두세요.`, '빼기', true, { ph: String(l.qty), mode: 'numeric' }); if (v === null) return; const q = Math.min(l.qty, parseInt(v, 10) || l.qty); l.qty -= q; d.lots = d.lots.filter((x) => x.qty > 0); S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: -q, qtyText: q + d.unit, note: '폐기·빼기 · ' + kexp(l.exp) }); save(); render(); },
+  newDrug: () => { T.newDrug = { id: uid(), name: '', kind: '', unit: '개', min: 0, counted: true, syms: [], lots: [] }; T.editDrug = null; render(); },
+  editDrug: (id) => { T.editDrug = id; T.newDrug = null; T._draft = JSON.parse(JSON.stringify(S.drugs.find((d) => d.id === id))); render(); },
+  dCounted: () => { const d = T.newDrug || T._draft; d.counted = !d.counted; },
+  dSym: (s) => { const d = T.newDrug || T._draft; d.syms = d.syms.includes(s) ? d.syms.filter((x) => x !== s) : [...d.syms, s]; syncDraftView(); },
+  dSave: () => { const d = T.newDrug || T._draft; if (!d.name.trim()) { toast('약 이름을 적어 주세요'); return; } d.min = parseInt(d.min, 10) || 0; if (T.newDrug) S.drugs.push(d); else { const i = S.drugs.findIndex((x) => x.id === d.id); S.drugs[i] = d; } T.newDrug = null; T.editDrug = null; save(); render(); },
+  dCancel: () => { T.newDrug = null; T.editDrug = null; render(); },
+  dDelete: async () => { const d = T._draft; const ok = await ask('이 약을 지울까요?', `${esc(d.name)}와 남은 재고 기록이 목록에서 사라져요. 지난 처치 기록에 적힌 약 이름은 그대로 남아요.`, '지우기', true); if (!ok) return; S.drugs = S.drugs.filter((x) => x.id !== d.id); T.editDrug = null; save(); render(); },
+  purUse: (i) => { T.pur.rows[i].use = !T.pur.rows[i].use; render(); },
+  purCancel: () => { T.pur = null; render(); },
+  purImport: () => {
+    const rows = T.pur.rows.filter((r) => r.use);
+    if (rows.some((r) => !r.exp)) { toast('유통기한을 모두 적어 주세요'); return; }
+    rows.forEach((r) => { let d = S.drugs.find((x) => x.id === r.match); if (!d) { d = { id: uid(), name: r.item, kind: '', unit: r.unit || '개', min: 0, counted: true, syms: [], lots: [] }; S.drugs.push(d); } const q = parseInt(r.into, 10) || 0; if (!q) return; d.lots.push({ id: uid(), exp: r.exp, qty: q, loc: r.loc }); S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: q, qtyText: q + d.unit, note: `품의서 입고 · 유통기한 ${kexp(r.exp)}${r.loc ? ' · ' + r.loc : ''}` }); });
+    S.settings.purMap = { hdrText: (T.pur.aoa[T.pur.hdr] || []).join('|'), cols: T.pur.cols }; T.pur = null; save(); render(); toast(`${rows.length}가지를 입고했어요. 새로 생긴 약은 '고치기'에서 맞는 증상을 골라 주세요`);
+  },
+  // 통계
+  statMonth: (i) => { T.statMonth = Number(i); render(); },
+  statXlsx: () => { const y = T.statYear || S.school.year; const { visits, roster } = yearData(y); writeBook(`${y}학년도_보건실통계_${S.school.name}.xlsx`, yearBook(y, visits, roster, true)); },
+  // 설정
+  cfgToggle: (k) => { S.settings[k] = !S.settings[k]; save(); },
+  careSym: (s) => { T.careSym = s; render(); },
+  careAdd: () => { const i = document.getElementById('careNew'); const t = i.value.trim(); if (!t) return; S.careCustom[T.careSym] = uniq([...(S.careCustom[T.careSym] || []), t]); save(); render(); },
+  careDel: (i) => { S.careCustom[T.careSym].splice(Number(i), 1); save(); render(); },
+  rosterTemplate: () => writeBook('똑똑_명렬표_양식.xlsx', { '명렬표': [['학년', '반', '번호', '이름', '보호자1 관계', '보호자1 전화', '보호자2 관계', '보호자2 전화', '주의 메모'], [1, 1, 1, '김하늘', '어머니', '010-0000-0000', '아버지', '010-0000-0000', '']] }),
+  rosterApply: () => { S.roster = T.rosterPreview.list; T.rosterPreview = null; save(); render(); toast('명단을 바꿨어요'); },
+  rosterCancel: () => { T.rosterPreview = null; render(); },
+  backup: () => download(`똑똑_백업_${ymd(now())}.json`, new Blob([JSON.stringify(S)], { type: 'application/json' })),
+  wipe: async () => { const v = await ask('모든 자료를 지울까요?', '명단, 기록, 약품, 설정이 모두 사라지고 되돌릴 수 없어요. 확인을 위해 <b>지우기</b>라고 적어 주세요.', '모두 지우기', true, { ph: '지우기' }); if (v !== '지우기') { if (v !== null) toast('글자가 달라서 지우지 않았어요'); return; } S = blankState(); save(); go('start'); },
+  // 마감
+  yeNoPhone: () => { T.ye.noPhone = !T.ye.noPhone; },
+  yeDownload: () => { writeBook(`${S.school.year}학년도_보건실기록_${S.school.name}.xlsx`, yearBook(S.school.year, S.visits, S.roster, T.ye.noPhone)); },
+  yeClose: async () => {
+    const y = S.school.year; if (T.ye.typed.trim() !== `${y} 마감`) return;
+    const ok = await ask(`${y}학년도를 마감할까요?`, `마감 파일을 내려받고, 명단과 올해 기록을 '지난 학년도'로 옮긴 뒤 ${y + 1}학년도를 시작해요.`, '마감하기', true); if (!ok) return;
+    A.yeDownload();
+    const roster = S.roster.map((s) => ({ ...s, guardians: T.ye.noPhone ? [] : s.guardians }));
+    S.archives.push({ year: y, closedAt: now(), roster, visits: S.visits.filter((v) => v.status === 'done') });
+    S.school.year = y + 1; S.roster = []; S.visits = []; S.call = null; T.ye.typed = ''; save(); render(); toast(`${y + 1}학년도를 시작했어요. 설정에서 새 명렬표를 올려 주세요`);
+  },
+  arDownload: (y) => { const ar = S.archives.find((a) => a.year === Number(y)); if (ar) writeBook(`${ar.year}학년도_보건실기록_${S.school.name}.xlsx`, yearBook(ar.year, ar.visits, ar.roster, true)); }
+};
+const CH = {
+  setPlace: (el) => { S.override = { place: el.value, until: el.value === 'auto' || el.value === 'room' ? '' : (S.override.until || '') }; save(); render(); },
+  setUntil: (el) => { S.override.until = el.value; save(); render(); },
+  walkSet: (el) => { T.walk[el.dataset.arg] = el.value; if (el.dataset.arg === 'grade') { T.walk.cls = ''; T.walk.sid = ''; } if (el.dataset.arg === 'cls') T.walk.sid = ''; render(); },
+  setWarn: (el) => { S.settings.warnDays = Number(el.value); save(); render(); },
+  statYear: (el) => { T.statYear = Number(el.value); T.statMonth = null; render(); },
+  statGrade: (el) => { T.statGrade = el.value; render(); },
+  printDate: (el) => { T.printDate = el.value || ymd(now()); render(); },
+  symCat: (el) => { S.symCat[el.dataset.arg] = el.value; save(); },
+  purCol: (el) => { T.pur.cols[el.dataset.arg] = Number(el.value); buildPurRows(); render(); },
+  purHdr: (el) => { T.pur.hdr = Number(el.value); guessPurCols(); buildPurRows(); render(); },
+  purMatch: (el) => { const r = T.pur.rows[Number(el.dataset.arg)]; r.match = el.value; const d = S.drugs.find((x) => x.id === el.value); if (d) r.unit = d.unit; render(); },
+  purFile: async (el) => { const f = el.files[0]; if (!f) return; try { const aoa = await readTable(f); T.pur = { file: f.name, aoa, hdr: Math.max(0, aoa.findIndex((r) => r.some((c) => /품\s*명|품\s*목/.test(String(c))))), cols: {}, rows: [] }; guessPurCols(); buildPurRows(); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } },
+  rosterFile: async (el) => { const f = el.files[0]; if (!f) return; try { T.rosterPreview = parseRoster(await readTable(f)); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } },
+  restore: async (el) => { const f = el.files[0]; if (!f) return; try { const s = JSON.parse(await f.text()); if (!s.school) throw new Error(); const ok = await ask('백업 파일로 되살릴까요?', '지금 이 기기의 자료가 백업 파일 내용으로 바뀌어요.', '되살리기', true); if (!ok) return; S = Object.assign(blankState(), s); save(); render(); toast('되살렸어요'); } catch (e) { toast('똑똑! 백업 파일이 아니에요'); } }
+};
+function guessPurCols() {
+  const p = T.pur; const hdr = (p.aoa[p.hdr] || []).map((c) => String(c).replace(/\s/g, ''));
+  const saved = S.settings.purMap && S.settings.purMap.hdrText === (p.aoa[p.hdr] || []).join('|') ? S.settings.purMap.cols : null;
+  if (saved) { p.cols = { ...saved }; return; }
+  const f = (re) => hdr.findIndex((c) => re.test(c));
+  p.cols = { name: Math.max(0, f(/품명|품목|물품명|약품명/)), spec: f(/규격/), qty: Math.max(0, f(/수량/)) };
+}
+function syncDraftView() { render(); }
+
+/* ---------- 이벤트 ---------- */
+document.addEventListener('click', (e) => {
+  if (route() === 'kiosk') ensureAudio();
+  const el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
+  if (el.tagName === 'SELECT' || el.type === 'file') return;
+  const fn = A[el.dataset.act]; if (fn) { if (el.tagName === 'A') e.preventDefault(); fn(el.dataset.arg, el); }
+});
+document.addEventListener('change', (e) => { const el = e.target; const k = el.dataset && el.dataset.actChange; if (k && CH[k]) CH[k](el); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return; const el = e.target;
+  if (el.dataset && el.dataset.enter && A[el.dataset.enter]) { e.preventDefault(); if (el.dataset.bind) { const v = curVisit(); if (v) form(v).draft = el.value; } A[el.dataset.enter](); }
+  if (el.id === 'pinIn') A.unlock(); if (el.id === 'setupName') A.setupStart();
+});
+document.addEventListener('input', (e) => {
+  const el = e.target; const d = el.dataset || {};
+  if (d.bind) { const v = curVisit(); if (v) { form(v)[d.bind] = el.value; const pb = document.getElementById('previewBox'); if (pb) pb.textContent = previewText(v, form(v)); } return; }
+  if (d.bindRoot) { T[d.bindRoot] = el.value; if (d.live) render(); return; }
+  if (d.bindForm) { T.form[d.bindForm] = el.value; if (d.bindForm === 'drug') render(); return; }
+  if (d.bindDrug) { (T.newDrug || T._draft)[d.bindDrug] = el.value; return; }
+  if (d.bindPur) { const [i, k] = d.bindPur.split('|'); T.pur.rows[Number(i)][k] = el.value; return; }
+  if (d.bindYe) { T.ye[d.bindYe] = el.value; const btn = document.querySelector('[data-act="yeClose"]'); if (btn) btn.disabled = el.value.trim() !== `${S.school.year} 마감`; return; }
+  if (d.bindS) { const [a, b] = d.bindS.split('.'); S[a][b] = el.value; save(); return; }
+  if (d.bindStudent) { const st = student(d.bindStudent); if (st) { st.note = el.value; save(); } return; }
+  if (d.bindSched) { const [wd, key] = d.bindSched.split('|'); S.schedule[wd] = S.schedule[wd] || {}; if (el.value.trim()) S.schedule[wd][key] = el.value.trim(); else delete S.schedule[wd][key]; save(); return; }
+  if (d.bindPeriod) { const [i, k] = d.bindPeriod.split('|'); S.periods[Number(i)][k] = el.value; save(); return; }
+});
+document.addEventListener('change', (e) => { const el = e.target; if (el.dataset && (el.dataset.bindSched || el.dataset.bindForm === 'exp'))  render(); });
+
+if (!location.hash) location.hash = 'start';
+kioskGate();
+render();
+</script>
+</body>
+</html>
