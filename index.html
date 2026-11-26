@@ -139,7 +139,9 @@ const VERSION = '0.4.0';
 // 만든 사람 (공동 작업) — 이어 만드는 선생님 이름을 이 목록에 더하면 첫 화면·설정 아래에 함께 보여요
 const CREDITS = ['음악적체육인'];
 const creditText = () => '만든 사람 ' + CREDITS.join(' · ');
-const KEY = 'knock.v1';
+// 둘러보기 모드: 비밀번호를 만들기 전에 화면·기능을 시험해요. 클라우드에 올리지 않고 이 기기에만 따로 저장해요
+const DEMO = (() => { try { return localStorage.getItem('knock.demo') === '1'; } catch (e) { return false; } })();
+const KEY = DEMO ? 'knock.demo.v1' : 'knock.v1';
 
 /* ---------- 작은 도구 ---------- */
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -357,7 +359,8 @@ function render() {
   else html = ({ teacher: vTeacher, history: vHistory, drugs: vDrugs, stats: vStats, print: vPrint, config: vConfig, 'year-end': vYearEnd })[r]();
   const app = document.getElementById('app');
   const active = document.activeElement && document.activeElement.id;
-  app.innerHTML = (STORAGE_OK ? '' : '<div class="banner noprint">이 브라우저에서는 저장이 안 돼요. 창을 닫으면 기록이 사라져요.</div>') + html;
+  const demoBar = DEMO && r !== 'kiosk' ? '<div class="noprint" style="background:#FFF7E0;color:#7A5A00;border-bottom:1px solid #EAD38A;padding:8px 16px;text-align:center;font-size:14px;font-weight:700">둘러보기 모드 · 이 기기에만 잠깐 저장되고 클라우드에는 올라가지 않아요 · 실제 학생 정보는 넣지 마세요 <button class="btn ghost" data-act="demoExit" style="margin-left:10px;padding:4px 12px;font-size:13px;min-height:0">둘러보기 끝내기</button></div>' : '';
+  app.innerHTML = demoBar + (STORAGE_OK ? '' : '<div class="banner noprint">이 브라우저에서는 저장이 안 돼요. 창을 닫으면 기록이 사라져요.</div>') + html;
   if (active) { const el = document.getElementById(active); if (el && el.tagName === 'INPUT') { el.focus(); try { const v = el.value; el.setSelectionRange(v.length, v.length); } catch (e) {} } }
   afterRender(r);
 }
@@ -1227,7 +1230,14 @@ document.addEventListener('change', (e) => { const el = e.target; if (el.dataset
 var BOOTED = false, PENDING_RENDER = false;
 const typing = () => { const a = document.activeElement; return !!(a && a.matches && a.matches('input,textarea,select')); };
 document.addEventListener('focusout', () => { if (!PENDING_RENDER) return; setTimeout(() => { if (!PENDING_RENDER || typing()) return; PENDING_RENDER = false; render(); }, 60); });
+A.demoExit = async () => {
+  const ok = await ask('둘러보기를 끝낼까요?', '둘러보기에서 넣은 자료는 모두 지워져요. 끝나면 처음 연결 화면으로 돌아가요.', '끝내기', true);
+  if (!ok) return;
+  try { localStorage.removeItem('knock.demo'); localStorage.removeItem('knock.demo.v1'); sessionStorage.clear(); } catch (e) {}
+  location.replace(location.pathname);
+};
 window.KNOCK = {
+  demo: DEMO,
   getS: () => S,
   setS: (x) => { S = Object.assign(blankState(), x); },
   blankState,

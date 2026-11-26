@@ -11,6 +11,10 @@ const ITER = 310000;               // 비밀번호 → 열쇠 만들기 반복 �
 const PIECE = 900000;              // 문서 하나에 넣는 암호문 글자 수 (파이어베이스 문서 한도 1MB)
 const SINGLE = ['call', 'drugs', 'roster', 'stockLog']; // 따로 저장하는 묶음 (나머지 설정은 meta)
 const esc = KN.esc;
+const DEMO = !!KN.demo;
+const enterDemo = () => { try { localStorage.setItem('knock.demo', '1'); } catch (e) {} location.replace(location.pathname + '#start'); };
+const demoBtn = '<button class="btn big ghost" id="cgDemo">비밀번호 없이 둘러보기</button><div class="xs muted" style="margin-top:-4px">둘러보기는 클라우드에 올리지 않고 이 기기에만 잠깐 저장해요. 예시 자료로 화면과 기능을 시험할 수 있어요.</div>';
+const bindDemo = () => { const b = document.getElementById('cgDemo'); if (b) b.onclick = enterDemo; };
 
 /* ---------------- 작은 도구 ---------------- */
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -71,18 +75,19 @@ function showConnect(err) {
     <p class="muted small" style="margin:0;line-height:1.7">똑똑!은 학교마다 <b>자기 파이어베이스</b>에 기록을 저장해요. 처음 설치하는 학교는 <a href="guide.html" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700">설치 안내</a>를 따라 파이어베이스를 만든 뒤, 받은 <code>firebaseConfig</code>를 아래에 통째로 붙여 넣어요.</p>
     <textarea id="cgCfg" rows="8" placeholder="const firebaseConfig = {&#10;  apiKey: &quot;…&quot;,&#10;  authDomain: &quot;…&quot;,&#10;  projectId: &quot;…&quot;,&#10;  …&#10;};" style="font-family:monospace;font-size:13px"></textarea>
     ${errBox(err)}
-    <button class="btn big" id="cgConnect">연결하기</button>
+    <button class="btn big" id="cgConnect">연결하기</button>${demoBtn}
     <div class="note g small" style="line-height:1.7"><b>우리 학교가 이미 쓰고 있다면</b> 붙여 넣지 않아도 돼요. 선생님 화면 → 설정의 <b>QR</b>을 찍거나 <b>'다른 기기 연결 주소'</b>로 열면 바로 연결돼요.</div>`, true);
   document.getElementById('cgConnect').onclick = () => {
     const c = parseConfig(document.getElementById('cgCfg').value);
     if (!c) { showConnect('설정값을 읽지 못했어요. apiKey, projectId, appId가 들어 있는지 확인해 주세요.'); return; }
     useConfig(c); location.reload();
   };
+  bindDemo();
 }
 
 /* ---------------- 파이어베이스 불러오기 ---------------- */
 let fbApp = null, fbAuth = null, fbFs = null;
-if (CFG) {
+if (CFG && !DEMO) {
   try {
     [fbApp, fbAuth, fbFs] = await Promise.all([
       import(`https://www.gstatic.com/firebasejs/${FB}/firebase-app.js`),
@@ -158,7 +163,7 @@ const STATUS_TEXT = { ok: '☁ 저장됨', up: '☁ 올리는 중…', off: '⚠
 function setStatus(s) { STATUS = s; drawBadge(); const el = document.getElementById('cgStatus'); if (el) el.textContent = STATUS_TEXT[s]; }
 function drawBadge() {
   const kiosk = KN.route() === 'kiosk';
-  badge.style.display = KN.booted() && !kiosk ? 'block' : 'none';
+  badge.style.display = KN.booted() && !kiosk && !DEMO ? 'block' : 'none';
   badge.textContent = STATUS_TEXT[STATUS] || '';
   badge.style.color = STATUS === 'off' || STATUS === 'err' ? 'var(--or-d)' : 'var(--teal-d)';
 }
@@ -171,7 +176,7 @@ badge.onclick = () => {
 /* ---------------- 설정 화면의 '클라우드 연결' 칸 ---------------- */
 const isOwner = () => !!(USER && OWNER && OWNER.uid === USER.uid);
 function cardHtml() {
-  if (!CFG) return '';
+  if (!CFG || DEMO) return '';
   const members = (OWNER && OWNER.emails) || [];
   return `<section id="cloudCard" class="card stack"><h2 style="font-size:19px">클라우드 연결</h2>
     <div class="small" style="line-height:1.8">연결된 파이어베이스: <b>${esc(CFG.projectId)}</b><br>
@@ -228,11 +233,12 @@ let pushTimer = null, pushing = false, again = false;
 let MAXN = 400; // 보안 규칙이 큰 묶음을 막으면 작게 나눠 올려요
 window.CLOUD = {
   dirty: () => { if (!loaded) return; clearTimeout(pushTimer); pushTimer = setTimeout(push, 700); setStatus('up'); },
-  link: () => CFG ? linkOf(CFG) : '',
+  link: () => CFG && !DEMO ? linkOf(CFG) : '',
   cardHtml
 };
 
-if (!CFG) showConnect();
+if (DEMO) KN.boot();
+else if (!CFG) showConnect();
 else if (!fbApp) offlineGate('인터넷에 연결되지 않아 클라우드에 접속하지 못했어요.');
 else {
   const app = initializeApp(CFG);
@@ -251,7 +257,8 @@ else {
 function showLogin(err) {
   gate(`<p class="muted" style="margin:0;line-height:1.6">보건실 구글 계정으로 로그인해 주세요.<br><span class="xs">연결된 학교 클라우드: ${esc(CFG.projectId)}</span></p>
     <button class="btn big" id="cgLogin">Google 계정으로 로그인</button>${errBox(err)}
-    <button class="link small" id="cgChange" style="align-self:flex-start;color:var(--muted)">다른 학교로 연결 바꾸기</button>`);
+    ${demoBtn}<button class="link small" id="cgChange" style="align-self:flex-start;color:var(--muted)">다른 학교로 연결 바꾸기</button>`);
+  bindDemo();
   document.getElementById('cgLogin').onclick = async () => {
     try { await signInWithPopup(auth, new GoogleAuthProvider()); }
     catch (e) {
@@ -325,7 +332,9 @@ function showCreate(err) {
     <input id="cgPw2" type="password" placeholder="한 번 더" autocomplete="new-password">
     <div class="note small" style="color:var(--or-d);line-height:1.6"><b>꼭 따로 적어 두세요.</b> 비밀번호를 잊으면 아무도(구글도, 만든 사람도) 기록을 되살릴 수 없어요.</div>
     ${errBox(err)}
-    <button class="btn big" id="cgMake">만들고 시작하기</button>`);
+    <button class="btn big" id="cgMake">만들고 시작하기</button>
+    <div class="note g small" style="line-height:1.6">아직 비밀번호를 만들 준비가 안 됐다면 먼저 둘러봐도 돼요.</div>${demoBtn}`);
+  bindDemo();
   const go = async () => {
     const a = document.getElementById('cgPw1').value, b = document.getElementById('cgPw2').value;
     if (a.length < 8) { showCreate('8자 이상으로 만들어 주세요'); return; }
