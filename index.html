@@ -105,8 +105,8 @@ table.log .cell.on{outline:2px solid var(--teal);outline-offset:-2px;background:
 .btn.sm{min-height:34px;padding:0 14px;font-size:14px;white-space:nowrap}
 .chip.sm{min-height:36px;padding:0 12px;font-size:14px}
 .pop{position:fixed;z-index:60;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:14px}
-.pop.sx{width:560px;max-width:calc(100vw - 24px)}
-.pop.tx{width:520px;max-width:calc(100vw - 24px);max-height:70vh;overflow:auto}
+.pop.sx{width:560px;max-width:calc(100vw - 24px);overflow:auto}
+.pop.tx{width:520px;max-width:calc(100vw - 24px);overflow:auto}
 .pop .cats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;align-content:start;width:270px;flex-shrink:0}
 .pop .cat{border:0;background:none;text-align:left;padding:6px 8px;border-radius:8px;cursor:pointer;font:inherit;font-size:14px;white-space:nowrap}
 .pop .cat:hover{background:var(--bg)}
@@ -263,6 +263,8 @@ const SYM2SX = { head: ['두통', '두통'], fever: ['감염병', '발열'], diz
 const OLDCAT = { '근골격계': '근골격계', '피부·외상': '외상', '소화기계': '소화기', '호흡기계': '호흡기', '신경계': '신경계', '눈·귀·코': '이비인후', '비뇨생식기계': '비뇨생식', '구강': '구강치아', '순환기계': '순환기계', '기타': '기타' };
 const CARE_QUICK_DEFAULT = ['냉찜질', '온찜질', '드레싱', '소독', '침상안정', '보건지도', '건강상담', 'V/S 측정', '체온 측정', '통증척도 확인', '담임 연락', '보호자 연락', '병원 이송'];
 const CATS = SX_CATS;
+const PART_CATS = ['외상', '근골격계', '구강치아', '피부과']; // 부위를 함께 적는 계통
+const sxLabel = (v, x) => { const p = PART_CATS.includes(x.c) && v.sxp && v.sxp[x.c] ? v.sxp[x.c].trim() : ''; return p ? `${x.t}(${p})` : x.t; };
 const COMMON_CARE = ['체온 측정', '침대 안정', '담임 연락', '보호자 연락'];
 const RESULTS = [['back', '교실 복귀'], ['restback', '안정 후 복귀'], ['early', '조퇴(보호자 인계)'], ['hospital', '병원 진료 권고'], ['transfer', '병원 이송']];
 const RESULT_LABEL = Object.fromEntries(RESULTS);
@@ -353,7 +355,7 @@ function linkedVisits(st) {
   }
   return list.sort((a, b) => b.at - a.at);
 }
-const whatText = (v) => (v.sx && v.sx.length) ? v.sx.map((x) => x.t).join(', ') : [(v.parts || []).map((p) => PART_LABEL[p] || p).join(', '), (v.sym || []).map((s) => SYM_SHORT[s] || s).join(', ')].filter(Boolean).join(' · ');
+const whatText = (v) => (v.sx && v.sx.length) ? v.sx.map((x) => sxLabel(v, x)).join(', ') : [(v.parts || []).map((p) => PART_LABEL[p] || p).join(', '), (v.sym || []).map((s) => SYM_SHORT[s] || s).join(', ')].filter(Boolean).join(' · ');
 const careText = (v) => [...(v.cares || []), ...(v.custom || [])].join(', ');
 const drugText = (v) => (v.drugs || []).map((d) => `${d.name} ${d.qty}${d.unit}`).join(', ');
 
@@ -652,13 +654,13 @@ function vTeacher() {
   const xbtn = (act, arg, label) => `<button class="x" aria-label="${esc(label)} 지우기" data-act="${act}" data-arg="${esc(arg)}">×</button>`;
   const rowHtml = (v, i) => {
     const s2 = student(v.sid) || v.snap || {}; const cc = ccText(v);
-    const sx = (v.sx || []).map((x, j) => `<span class="cv">${esc(x.t)}${xbtn('sxDel', v.id + '|' + j, x.t)}</span>`).join('');
+    const sx = (v.sx || []).map((x, j) => `<span class="cv">${esc(sxLabel(v, x))}${xbtn('sxDel', v.id + '|' + j, x.t)}</span>`).join('');
     const tx = [...(v.cares || []).map((c, j) => `<span class="cv">${esc(c)}${xbtn('txDel', v.id + '|c|' + j, c)}</span>`), ...(v.custom || []).map((c, j) => `<span class="cv">${esc(c)}${xbtn('txDel', v.id + '|u|' + j, c)}</span>`), ...(v.drugs || []).map((d) => `<span class="cv drug">${esc(d.name)} ${d.qty}${esc(d.unit)}${xbtn('txDel', v.id + '|d|' + d.id, d.name)}</span>`)].join('');
     const open = T.pop && T.pop.vid === v.id;
     return `<tr class="${open ? 'hl' : ''}">
       <td class="c">${i + 1}</td>
       <td class="c">${s2.grade}-${s2.cls}${s2.num ? '-' + s2.num : ''}</td>
-      <td><div style="min-width:150px"><b style="white-space:nowrap">${esc(s2.name)}</b>${cc ? `<div class="xs" style="color:var(--or-d);line-height:1.4" title="학생이 접수할 때 고른 내용">주호소 · ${esc(cc)}</div>` : ''}</div></td>
+      <td><div style="min-width:150px"><b style="white-space:nowrap">${esc(s2.name)}</b>${cc ? `<div class="xs" style="color:var(--or-d);line-height:1.4" title="학생이 접수할 때 고른 내용">${esc(cc)}</div>` : ''}</div></td>
       <td class="c"><button class="ico" aria-label="${esc(s2.name)} 지난 기록" data-tip="지난 기록" data-act="histPop" data-arg="${v.id}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></button></td>
       <td class="cell ${open && T.pop.kind === 'sx' ? 'on' : ''}" data-cell="${v.id}|sx" data-act="openPop" data-arg="${v.id}|sx">${sx || '<span class="ph">증상 고르기</span>'}</td>
       <td class="cell ${open && T.pop.kind === 'tx' ? 'on' : ''}" data-cell="${v.id}|tx" data-act="openPop" data-arg="${v.id}|tx">${tx || '<span class="ph">처치·처방 고르기</span>'}</td>
@@ -700,6 +702,7 @@ function popHtml() {
       <div class="cats">${SX_CATS.map((c) => `<button class="cat ${c === cat ? 'on' : ''}" data-act="popCat" data-arg="${esc(c)}">${esc(c)}${nIn(c) ? ` <b>${nIn(c)}</b>` : ''}</button>`).join('')}</div>
       <div class="stack" style="flex:1;min-width:0;gap:8px;background:var(--teal-s);border-radius:12px;padding:10px">
         <input id="popIn" type="text" placeholder="직접 입력 후 Enter" data-enter="popAdd">
+        ${PART_CATS.includes(cat) ? `<label class="f" style="margin:0">부위 <span class="xs" style="font-weight:400">${esc(cat)} 증상에 함께 적혀요</span><input id="popPart" type="text" placeholder="예: 오른쪽 무릎, 왼손 검지" value="${esc((v.sxp || {})[cat] || '')}" data-sxp="${v.id}|${esc(cat)}"></label>` : ''}
         <div class="checks">${(list[cat] || []).map((t) => `<label class="ck"><input type="checkbox" ${has(cat, t) ? 'checked' : ''} data-act="sxToggle" data-arg="${esc(cat + '|' + t)}"> ${esc(t)}</label>`).join('') || '<div class="xs muted">이 계통에 증상이 없어요 · 설정에서 더할 수 있어요</div>'}</div>
         <button class="btn sm" style="align-self:flex-start" data-act="popClose">선택 완료</button>
       </div></div></div>`;
@@ -725,8 +728,11 @@ function placePop() {
   const cell = document.querySelector(`[data-cell="${T.pop.vid}|${T.pop.kind}"]`); if (!cell) return;
   const r = cell.getBoundingClientRect(); const w = p.offsetWidth, h = p.offsetHeight;
   let left = Math.min(r.left, window.innerWidth - w - 12); left = Math.max(12, left);
-  let top = r.bottom + 6; if (top + h > window.innerHeight - 8 && r.top - h - 6 > 8) top = r.top - h - 6;
-  p.style.left = left + 'px'; p.style.top = Math.max(8, top) + 'px';
+  const below = window.innerHeight - r.bottom - 14, above = r.top - 14;
+  let top, maxH;
+  if (h <= below || below >= above) { top = r.bottom + 6; maxH = below; } else { maxH = above; top = Math.max(8, r.top - 6 - Math.min(h, maxH)); }
+  p.style.maxHeight = Math.max(220, maxH) + 'px';
+  p.style.left = left + 'px'; p.style.top = top + 'px';
 }
 window.addEventListener('resize', placePop);
 window.addEventListener('scroll', placePop, true);
@@ -747,6 +753,8 @@ function startRow(v) {
   // 대기 학생을 표로 옮겨요: 학생이 고른 증상을 미리 넣어 둬요
   v.status = 'done'; v.calledAt = now(); v.result = v.result || '';
   if (!v.sx) v.sx = uniq((v.sym || []).map((s) => SYM2SX[s]).filter(Boolean).map((x) => x.join('|'))).map((k) => { const [c, t] = k.split('|'); return { c, t }; });
+  const partTxt = (v.parts || []).map((p) => PART_LABEL[p] || p).join(', ');
+  if (partTxt) { v.sxp = v.sxp || {}; v.sx.forEach((x) => { if (PART_CATS.includes(x.c) && !v.sxp[x.c]) v.sxp[x.c] = partTxt; }); }
 }
 function walkForm() {
   const w = T.walk; const grades = uniq(S.roster.map((s) => s.grade)).sort((a, b) => a - b);
@@ -1344,6 +1352,7 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('input', (e) => {
   const el = e.target; const d = el.dataset || {};
+  if (d.sxp) { const i = d.sxp.indexOf('|'); const v = S.visits.find((x) => x.id === d.sxp.slice(0, i)); if (v) { v.sxp = v.sxp || {}; v.sxp[d.sxp.slice(i + 1)] = el.value; save(); const cell = document.querySelector(`[data-cell="${v.id}|sx"]`); if (cell) cell.querySelectorAll('.cv').forEach((n, k) => { const x = v.sx[k]; if (x && n.firstChild) n.firstChild.textContent = sxLabel(v, x); }); } return; }
   if (d.vmemo) { const v = S.visits.find((x) => x.id === d.vmemo); if (v) { v.memo = el.value; save(); } return; }
   if (d.bindRoot) { T[d.bindRoot] = el.value; if (d.live) render(); return; }
   if (d.bindForm) { T.form[d.bindForm] = el.value; if (d.bindForm === 'drug') render(); return; }
