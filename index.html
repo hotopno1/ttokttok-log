@@ -203,6 +203,18 @@ const DEFAULT_CARE = {
   breath: ['안정', '보호자 연락', '응급 연락'], heart: ['안정', '맥박 측정'], stomach: ['찜질팩', '화장실 안내', '침대 안정'], nausea: ['침대 안정', '물 마시기'],
   diarrhea: ['화장실 안내', '수분 섭취 안내'], period: ['찜질팩', '침대 안정'], etc: ['관찰']
 };
+// 선생님 관찰: 부위별로 고를 수 있는 진단 (학교에 맞게 고쳐 써도 돼요)
+const DX_BY_GROUP = {
+  face: ['두통', '발열', '어지러움', '코피(비출혈)', '눈 충혈·결막염', '눈 이물', '치통', '구내염', '안면 타박상', '찰과상', '열상(찢어짐)', '벌레 물림'],
+  headBack: ['두통', '두부 타박상', '찰과상', '열상(찢어짐)', '뇌진탕 의심'],
+  neck: ['인후통', '감기(상기도 감염)', '편도염 의심', '목 근육통', '목 염좌', '타박상'],
+  chest: ['기침', '호흡곤란', '천식 증상', '흉통', '두근거림(심계항진)', '과호흡', '타박상'],
+  belly: ['복통', '소화불량', '위염 증상', '장염 의심', '설사', '구토·메스꺼움', '변비', '생리통', '타박상'],
+  back: ['요통', '근육통', '염좌', '타박상', '찰과상'],
+  hip: ['타박상', '근육통', '꼬리뼈 통증', '찰과상'],
+  limb: ['찰과상', '타박상', '염좌', '열상(찢어짐)', '화상', '근육통·쥐남', '골절 의심', '벌레 물림', '피부 발진'],
+  handFoot: ['찰과상', '타박상', '염좌', '열상(찢어짐)', '화상', '손발톱 손상', '물집', '골절 의심', '벌레 물림']
+};
 const COMMON_CARE = ['체온 측정', '침대 안정', '담임 연락', '보호자 연락'];
 const RESULTS = [['back', '교실 복귀'], ['restback', '안정 후 복귀'], ['early', '조퇴(보호자 인계)'], ['hospital', '병원 진료 권고'], ['transfer', '병원 이송']];
 const RESULT_LABEL = Object.fromEntries(RESULTS);
@@ -445,11 +457,10 @@ function kWho() {
     <div class="row"><button class="kbtn" style="height:70px;padding:0 26px;font-size:20px" data-act="kReset">다시 고르기</button><button class="btn" style="height:70px;width:250px;font-size:24px;border-radius:16px" data-act="kToWhere" ${st ? '' : 'disabled'}>네, 저예요</button></div>
   </footer>`, 1);
 }
-function bodyMap(list) {
-  const k = 1.15;
+function bodyMap(list, sel = K.parts, act = 'kPart', k = 1.15) {
   return list.map(([id, label, x, y, w, h, r]) => {
-    const on = !!K.parts[id]; const fs = Math.min(18, Math.max(12, Math.round(Math.min(w, h) * k * 0.42)));
-    return `<button class="part ${on ? 'on' : ''}" data-tip="${esc(label)}" aria-label="${esc(label)}" aria-pressed="${on}" data-act="kPart" data-arg="${id}" style="left:${Math.round(x * k)}px;top:${Math.round(y * k)}px;width:${Math.round(w * k)}px;height:${Math.round(h * k)}px;border-radius:${Math.round(r * k)}px;font-size:${fs}px">${esc(partShort(label))}</button>`;
+    const on = !!sel[id]; const fs = Math.min(18, Math.max(11, Math.round(Math.min(w, h) * k * 0.42)));
+    return `<button class="part ${on ? 'on' : ''}" data-tip="${esc(label)}" aria-label="${esc(label)}" aria-pressed="${on}" data-act="${act}" data-arg="${id}" style="left:${Math.round(x * k)}px;top:${Math.round(y * k)}px;width:${Math.round(w * k)}px;height:${Math.round(h * k)}px;border-radius:${Math.round(r * k)}px;font-size:${fs}px">${esc(partShort(label))}</button>`;
   }).join('');
 }
 function allowedSyms(partIds) {
@@ -574,7 +585,56 @@ function curVisit() {
 }
 function form(v) {
   if (!T.f[v.id]) T.f[v.id] = { cares: {}, drugs: {}, custom: [], draft: '', saveFav: false, temp: '', memo: '', result: 'back', calls: {} };
-  return T.f[v.id];
+  const f = T.f[v.id];
+  if (!f.obs) f.obs = { step: 'body', parts: Object.fromEntries((v.parts || []).map((p) => [p, true])), dx: {} };
+  if (f.obsNote === undefined) f.obsNote = '';
+  return f;
+}
+// 학생이 접수할 때 말한 것 (주호소)
+const ccText = (v) => [(v.parts || []).map((p) => PART_LABEL[p] || p).join(', '), (v.sym || []).map((s) => SYM[s] || s).join(', '), (SINCE.find((x) => x[0] === v.since) || [])[1] || ''].filter(Boolean).join(' · ');
+// 선생님 관찰을 저장할 모양으로
+function obsOf(f) {
+  const o = f.obs || {}; const parts = Object.keys(o.parts || {}).filter((p) => o.parts[p]);
+  const dx = Object.keys(o.dx || {}).filter((k) => o.dx[k]).map((k) => { const i = k.indexOf('|'); return { p: k.slice(0, i), d: k.slice(i + 1) }; }).filter((x) => parts.includes(x.p));
+  const note = (f.obsNote || '').trim();
+  if (!dx.length && !note) return null;
+  return { parts, dx, note };
+}
+// 관찰 내용을 글로: '왼다리 찰과상, 타박상 · 얼굴 코피(비출혈)'
+function obsText(o, withNote = true) {
+  if (!o) return '';
+  const by = {}; (o.dx || []).forEach((x) => { (by[x.p] = by[x.p] || []).push(x.d); });
+  const dxs = (o.parts || []).filter((p) => by[p]).map((p) => `${PART_LABEL[p] || p} ${by[p].join(', ')}`).join(' · ');
+  return [dxs, withNote && o.note ? o.note : ''].filter(Boolean).join(' / ');
+}
+function obsBox(v, f) {
+  const o = f.obs; const picked = Object.keys(o.parts).filter((p) => o.parts[p]);
+  const stepTag = (n, l, on) => `<span class="tag ${on ? 't' : ''}" style="${on ? 'font-weight:700' : ''}">${n} ${l}</span>`;
+  const head = `<div class="between"><h2 style="font-size:18px">선생님 관찰 <span class="muted small" style="font-weight:400">학생 상태를 보고 부위와 진단을 적어요</span></h2><div class="row" style="gap:6px">${stepTag(1, '부위', o.step === 'body')}${stepTag(2, '진단·기록', o.step === 'dx')}</div></div>`;
+  if (o.step === 'body') {
+    const k = 0.78; const box = `position:relative;width:${Math.round(200 * k)}px;height:${Math.round(456 * k)}px`;
+    return `<div class="stack" style="gap:12px;border:2px solid var(--teal-s);border-radius:14px;padding:16px">${head}
+      <div class="small muted">관찰한 부위를 눌러 주세요. 여러 곳 골라도 돼요.${(v.parts || []).length ? ' 학생이 고른 부위가 먼저 표시돼 있어요.' : ''}</div>
+      <div style="display:flex;justify-content:center;gap:28px;flex-wrap:wrap">
+        <div class="stack" style="align-items:center;gap:6px"><b class="muted small">앞</b><div style="${box}">${bodyMap(PARTS_F, o.parts, 'oPart', k)}</div></div>
+        <div aria-hidden="true" style="border-left:2px dashed #C7D2CE;margin:4px 0"></div>
+        <div class="stack" style="align-items:center;gap:6px"><b class="muted small">뒤</b><div style="${box}">${bodyMap(PARTS_B, o.parts, 'oPart', k)}</div></div>
+      </div>
+      <div class="between" style="align-items:center"><div class="small">${picked.length ? '<b>고른 부위</b> · ' + esc(picked.map((p) => PART_LABEL[p]).join(', ')) : '<span class="muted">아직 고른 부위가 없어요</span>'}</div>
+      <button class="btn" data-act="oNext" ${picked.length ? '' : 'disabled'}>부위 선택 완료 → 진단 고르기</button></div>
+    </div>`;
+  }
+  const groups = picked.map((p) => {
+    const list = DX_BY_GROUP[partGroup(p)] || [];
+    return `<div class="stack" style="gap:8px"><div class="small b">${esc(PART_LABEL[p])}</div><div class="chips">${list.map((d) => { const key = p + '|' + d; return `<button class="chip ${o.dx[key] ? 'on' : ''}" aria-pressed="${!!o.dx[key]}" data-act="oDx" data-arg="${esc(key)}">${esc(d)}</button>`; }).join('')}</div></div>`;
+  }).join('');
+  return `<div class="stack" style="gap:14px;border:2px solid var(--teal-s);border-radius:14px;padding:16px">${head}
+    <div class="row" style="gap:8px"><span class="small b muted">고른 부위</span>${picked.map((p) => `<span class="tag t">${esc(PART_LABEL[p])}</span>`).join('')}<button class="link small" data-act="oBack">← 부위 다시 고르기</button></div>
+    <div class="small muted" style="margin-bottom:-4px">부위마다 맞는 진단을 골라요. 여러 개 골라도 돼요.</div>
+    ${groups}
+    <label class="f">서술 기록 <span class="xs" style="font-weight:400">관찰한 상태를 자세히 적어요 (상처 크기·모양, 통증 정도, 활력징후, 경과 등)</span>
+      <textarea id="tObsNote" rows="3" data-bind="obsNote" placeholder="예: 왼쪽 정강이 2cm 찰과상, 출혈 멎음. 부종 없고 걸을 때 통증 약함.">${esc(f.obsNote)}</textarea></label>
+  </div>`;
 }
 function vTeacher() {
   const q = queue(); const v = curVisit(); const done = todayVisits().filter((x) => x.status === 'done').sort((a, b) => b.at - a.at);
@@ -590,7 +650,7 @@ function vTeacher() {
   </aside>
   <section class="c-w stack">${v ? treatForm(v, st) : `<div class="card"><h2 style="font-size:20px">처치할 학생을 기다리는 중</h2><p class="muted" style="margin:6px 0 0">'다음 학생 입장'을 누르거나 대기 카드를 누르면 여기에서 처치를 적어요.</p></div>`}
     <div class="card stack"><div class="between"><h2 style="font-size:18px">오늘 기록 ${done.length}건</h2><a class="btn line" href="#print">기록부 출력</a></div>
-    ${done.length ? `<div class="scroll"><table class="t" style="min-width:680px"><thead><tr><th>접수</th><th>학생</th><th>부위·증상</th><th>처치·투약</th><th>조치</th><th></th></tr></thead><tbody>${done.map((x) => { const s2 = student(x.sid) || x.snap || {}; return `<tr><td>${hm(x.at)}</td><td><button class="link" data-act="openHist" data-arg="${x.sid}">${clsText(s2)} ${esc(s2.name)}</button></td><td>${esc(whatText(x))}</td><td>${esc([careText(x), drugText(x)].filter(Boolean).join(', '))}</td><td>${esc(RESULT_LABEL[x.result] || '')}</td><td><button class="link" data-act="reopen" data-arg="${x.id}">고치기</button></td></tr>`; }).join('')}</tbody></table></div>` : '<div class="muted small">아직 처치를 마친 학생이 없어요</div>'}
+    ${done.length ? `<div class="scroll"><table class="t" style="min-width:680px"><thead><tr><th>접수</th><th>학생</th><th>부위·증상</th><th>처치·투약</th><th>조치</th><th></th></tr></thead><tbody>${done.map((x) => { const s2 = student(x.sid) || x.snap || {}; return `<tr><td>${hm(x.at)}</td><td><button class="link" data-act="openHist" data-arg="${x.sid}">${clsText(s2)} ${esc(s2.name)}</button></td><td>${esc(whatText(x))}${x.obs ? `<div class="xs" style="color:var(--teal-d)">관찰 · ${esc(obsText(x.obs))}</div>` : ''}</td><td>${esc([careText(x), drugText(x)].filter(Boolean).join(', '))}</td><td>${esc(RESULT_LABEL[x.result] || '')}</td><td><button class="link" data-act="reopen" data-arg="${x.id}">고치기</button></td></tr>`; }).join('')}</tbody></table></div>` : '<div class="muted small">아직 처치를 마친 학생이 없어요</div>'}
     </div>
   </section>
   ${v ? `<aside class="c-h">${histPanel(st, v)}</aside>` : ''}
@@ -620,13 +680,11 @@ function treatForm(v, st) {
   const used = S.drugs.filter((d) => f.drugs[d.id]);
   const drugUse = used.length ? `<div class="note or stack" style="color:var(--ink)"><div class="small b" style="color:var(--or-d)">쓴 약의 양 <span class="muted" style="font-weight:400">저장하면 재고에서 저절로 줄어요</span></div>${used.map((d) => { const q = f.drugs[d.id]; const unit = d.counted ? d.unit : '회'; const tot = drugTotal(d); return `<div class="between" style="align-items:center;background:#fff;border-radius:10px;padding:8px 10px 8px 14px"><div><b>${esc(d.name)}</b><div class="xs muted">${d.counted ? `지금 재고 ${tot}${d.unit} → 저장 뒤 ${Math.max(0, tot - q)}${d.unit}${tot < q ? ' (재고보다 많아요)' : ''}` : '사용 횟수만 적어요 · 통이 비면 약품·재고에서 줄여요'}</div></div><div class="stepper"><button aria-label="${esc(d.name)} 하나 줄이기" data-act="tDrugQ" data-arg="${d.id}|-1">−</button><b style="min-width:60px;text-align:center;font-size:17px">${q}${unit}</b><button aria-label="${esc(d.name)} 하나 늘리기" data-act="tDrugQ" data-arg="${d.id}|1">+</button></div></div>`; }).join('')}</div>` : '';
   const customChips = f.custom.length ? `<div class="chips">${f.custom.map((c, i) => `<span class="row" style="gap:0;border:2px solid var(--teal);background:var(--teal);border-radius:12px;overflow:hidden"><span style="color:#fff;font-weight:700;padding:0 10px 0 14px">${esc(c)}</span><button aria-label="${esc(c)} 지우기" data-act="tCustomDel" data-arg="${i}" style="width:40px;height:44px;border:0;border-left:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;cursor:pointer;font-size:16px">×</button></span>`).join('')}</div>` : '';
-  const guards = (st && st.guardians || []).filter((g) => g.phone);
-  const guardHtml = guards.length ? `<div class="row" style="align-items:stretch">${guards.map((g, i) => `<div class="between" style="flex:1 1 260px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 10px 8px 14px"><div><div class="xs muted">보호자 · ${esc(g.rel || '')}</div><b>${esc(g.phone)}</b></div><div class="row" style="gap:6px"><a class="btn" data-tip="${esc(g.phone)} 로 전화" href="tel:${esc(g.phone.replace(/[^0-9+]/g, ''))}">전화 걸기</a><button class="chip ${f.calls[i] ? 'on' : ''}" data-act="tCall" data-arg="${i}">${f.calls[i] ? '통화함 ' + hm(f.calls[i]) : '통화했어요'}</button></div></div>`).join('')}</div>` : `<div class="muted small">등록된 보호자 번호가 없어요 · 설정의 명렬표에서 넣을 수 있어요</div>`;
   const nCare = Object.keys(f.cares).filter((k) => f.cares[k]).length + f.custom.length + used.length;
   return `<div class="card stack" style="gap:18px">
-  <div class="between"><div><div class="small b" style="color:var(--teal)">${v.status === 'called' ? '처치 중' : '대기 중인 학생'}</div><h1 style="font-size:26px;font-weight:900"><button class="link" style="font-size:26px;color:var(--ink)" data-act="openHist" data-arg="${v.sid}">${esc(st.name)}</button> <span class="muted" style="font-size:17px;font-weight:500">${st.grade}학년 ${st.cls}반 ${st.num}번</span></h1></div><div class="small muted">접수 ${hm(v.at)}${v.calledAt ? ' · 입실 ' + hm(v.calledAt) : ''}</div></div>
-  <div class="chips">${(v.parts || []).map((p) => `<span class="tag t">${esc(PART_LABEL[p])}</span>`).join('')}${syms.map((s) => `<span class="tag t">${esc(SYM[s])}</span>`).join('')}<span class="tag">${esc((SINCE.find((x) => x[0] === v.since) || [])[1] || '')}</span>${v.status === 'wait' ? '<button class="btn" data-act="callThis" data-arg="' + v.id + '">이 학생 부르기</button>' : ''}</div>
-  ${guardHtml}
+  <div class="between"><div><div class="small b" style="color:var(--teal)">${v.status === 'called' ? '처치 중' : '대기 중인 학생'}</div><h1 style="font-size:26px;font-weight:900"><button class="link" style="font-size:26px;color:var(--ink)" data-act="openHist" data-arg="${v.sid}">${esc(st.name)}</button> <span class="muted" style="font-size:17px;font-weight:500">${st.grade}학년 ${st.cls}반 ${st.num}번</span> <span style="font-size:14px;font-weight:500;color:var(--or-d);background:var(--or-s);border-radius:8px;padding:2px 8px;vertical-align:middle" title="학생이 접수할 때 고른 내용">주호소 · ${esc(ccText(v) || '없음')}</span></h1></div><div class="small muted">접수 ${hm(v.at)}${v.calledAt ? ' · 입실 ' + hm(v.calledAt) : ''}</div></div>
+  ${v.status === 'wait' ? '<div class="row"><button class="btn" data-act="callThis" data-arg="' + v.id + '">이 학생 부르기</button></div>' : ''}
+  ${obsBox(v, f)}
   <div class="stack"><div class="between"><h2 style="font-size:18px">처치 내용 <span class="muted small" style="font-weight:400">여러 개를 함께 골라도 돼요</span></h2><b class="small" style="color:var(--teal-d)">고른 처치 ${nCare}개</b></div>
   ${groups}
   <div class="stack" style="gap:8px;background:var(--bg);border-radius:12px;padding:12px 14px">
@@ -648,9 +706,9 @@ function previewText(v, f) {
   const cares = Object.keys(f.cares).filter((k) => f.cares[k]);
   const drugs = S.drugs.filter((d) => f.drugs[d.id]).map((d) => `${d.name} ${f.drugs[d.id]}${d.counted ? d.unit : '회'} 투약`);
   const st = student(v.sid) || {};
-  const calls = Object.keys(f.calls).filter((k) => f.calls[k]).map((i) => `보호자(${(st.guardians || [])[i]?.rel || ''}) 통화(${hm(f.calls[i])})`);
-  const all = [...cares, ...f.custom, ...drugs, ...calls];
-  return `${whatText(v)} → ${all.join(', ') || '처치를 골라 주세요'}${f.temp ? ' / 체온 ' + f.temp + '℃' : ''} / ${RESULT_LABEL[f.result]}`;
+  const all = [...cares, ...f.custom, ...drugs];
+  const ob = obsText(obsOf(f));
+  return `${whatText(v)}${ob ? ' (관찰: ' + ob + ')' : ''} → ${all.join(', ') || '처치를 골라 주세요'}${f.temp ? ' / 체온 ' + f.temp + '℃' : ''} / ${RESULT_LABEL[f.result]}`;
 }
 function histPanel(st, v) {
   const list = linkedVisits(student(v.sid)).slice(0, 6);
@@ -661,7 +719,7 @@ function histPanel(st, v) {
   <div class="small muted">올해 ${thisYear}회 · 지난해까지 ${list.length - thisYear}회</div>
   ${same.length ? `<div class="note or small"><b>같은 부위 ${same.length + 1}번째</b> · ${esc(same.map((x) => kdate(x.at) + ' ' + whatText(x)).slice(0, 2).join(' / '))}</div>` : ''}
   ${student(v.sid)?.note ? `<div class="note g small"><b>주의 메모</b> · ${esc(student(v.sid).note)}</div>` : ''}
-  ${list.length ? list.map((x) => `<div style="border-top:1px solid #EEF2F0;padding-top:10px" class="stack"><div class="between xs muted" style="gap:4px"><b style="color:var(--ink)">${kdate(x.at)}</b><span>${x.snap ? x.snap.grade + '학년' : ''}</span></div><b class="small" style="color:${(x.parts || []).some((p) => parts.includes(p)) ? 'var(--or-d)' : 'var(--ink)'}">${esc(whatText(x))}</b><div class="xs" style="line-height:1.5">${esc([careText(x), drugText(x)].filter(Boolean).join(', '))}${x.result ? ' · ' + esc(RESULT_LABEL[x.result]) : ''}</div></div>`).join('') : '<div class="muted small">처음 온 학생이에요</div>'}
+  ${list.length ? list.map((x) => `<div style="border-top:1px solid #EEF2F0;padding-top:10px" class="stack"><div class="between xs muted" style="gap:4px"><b style="color:var(--ink)">${kdate(x.at)}</b><span>${x.snap ? x.snap.grade + '학년' : ''}</span></div><b class="small" style="color:${(x.parts || []).some((p) => parts.includes(p)) ? 'var(--or-d)' : 'var(--ink)'}">${esc(whatText(x))}</b>${x.obs ? `<div class="xs" style="color:var(--teal-d)">관찰 · ${esc(obsText(x.obs, false))}</div>` : ''}<div class="xs" style="line-height:1.5">${esc([careText(x), drugText(x)].filter(Boolean).join(', '))}${x.result ? ' · ' + esc(RESULT_LABEL[x.result]) : ''}</div></div>`).join('') : '<div class="muted small">처음 온 학생이에요</div>'}
   </div>`;
 }
 
@@ -682,9 +740,9 @@ function vHistory() {
     body = `<button class="link noprint" data-act="histBack">← 다른 학생 찾기</button>
     <div class="between"><div><h1 style="font-size:28px;font-weight:900">${esc(st.name)} <span class="muted" style="font-size:18px;font-weight:500">${st.grade}학년 ${st.cls}반 ${st.num}번</span></h1>${(st.prev || []).length ? '<div class="small muted">지난 학년도 기록과 이어져 있어요</div>' : ''}</div><button class="btn ghost noprint" data-act="doPrint">이 학생 기록 출력</button></div>
     <div class="card stack" style="padding:16px 18px"><label class="f">주의 메모 <span class="xs" style="font-weight:400">보건 선생님만 보는 칸 · 처치 화면 옆에 함께 보여요</span><textarea id="noteIn" rows="2" data-bind-student="${st.id}">${esc(st.note || '')}</textarea></label></div>
-    <div class="tiles"><div class="tile"><div class="muted small">전체 방문</div><div class="v">${all.length}회</div></div><div class="tile"><div class="muted small">자주 아픈 곳</div><div class="v">${topPart ? esc(topPart[0]) : '-'}</div></div><div class="tile"><div class="muted small">투약</div><div class="v">${all.filter((x) => (x.drugs || []).length).length}회</div></div><div class="tile"><div class="muted small">보호자 연락</div><div class="v">${all.filter((x) => (x.calls || []).length).length}회</div></div></div>
+    <div class="tiles"><div class="tile"><div class="muted small">전체 방문</div><div class="v">${all.length}회</div></div><div class="tile"><div class="muted small">자주 아픈 곳</div><div class="v">${topPart ? esc(topPart[0]) : '-'}</div></div><div class="tile"><div class="muted small">투약</div><div class="v">${all.filter((x) => (x.drugs || []).length).length}회</div></div><div class="tile"><div class="muted small">보호자 연락</div><div class="v">${all.filter((x) => (x.calls || []).length || (x.cares || []).includes('보호자 연락')).length}회</div></div></div>
     <div class="card stack"><div class="between"><h2 style="font-size:18px">보건실 기록</h2><div class="chips noprint">${['all', ...years].map((y) => `<button class="chip ${String(T.histTab) === String(y) ? 'on' : ''}" data-act="histTab" data-arg="${y}">${y === 'all' ? '전체' : y + '학년도'}</button>`).join('')}</div></div>
-    ${list.length ? `<div class="scroll"><table class="t" style="min-width:820px"><thead><tr><th>날짜</th><th>그때 학년·반</th><th>부위 · 증상</th><th>처치</th><th>투약</th><th>조치</th><th>메모</th></tr></thead><tbody>${list.map((x) => `<tr><td class="b" style="white-space:nowrap">${kdate(x.at)}</td><td class="muted">${x.snap ? clsText(x.snap) : ''}</td><td>${esc(whatText(x))}</td><td>${esc(careText(x))}${x.temp ? ' · ' + esc(x.temp) + '℃' : ''}</td><td>${esc(drugText(x) || '-')}</td><td style="white-space:nowrap">${esc(RESULT_LABEL[x.result] || '')}</td><td class="muted">${esc(x.memo || '')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="muted small">기록이 없어요</div>'}
+    ${list.length ? `<div class="scroll"><table class="t" style="min-width:820px"><thead><tr><th>날짜</th><th>그때 학년·반</th><th>부위 · 증상</th><th>처치</th><th>투약</th><th>조치</th><th>메모</th></tr></thead><tbody>${list.map((x) => `<tr><td class="b" style="white-space:nowrap">${kdate(x.at)}</td><td class="muted">${x.snap ? clsText(x.snap) : ''}</td><td>${esc(whatText(x))}${x.obs ? `<div class="xs" style="color:var(--teal-d)">관찰 · ${esc(obsText(x.obs))}</div>` : ''}</td><td>${esc(careText(x))}${x.temp ? ' · ' + esc(x.temp) + '℃' : ''}</td><td>${esc(drugText(x) || '-')}</td><td style="white-space:nowrap">${esc(RESULT_LABEL[x.result] || '')}</td><td class="muted">${esc(x.memo || '')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="muted small">기록이 없어요</div>'}
     </div>`;
   }
   return topbar('history') + `<main class="wrap" style="max-width:1200px"><div class="stack">${body}</div></main>`;
@@ -814,7 +872,7 @@ function vPrint() {
     <div class="between" style="align-items:flex-start"><div><h1 style="font-size:26px;font-weight:900">보건실 이용 기록부</h1><div style="margin-top:6px">${dt.getFullYear()}년 ${dt.getMonth() + 1}월 ${dt.getDate()}일(${WD[dt.getDay()]}) · ${esc(S.school.name)} 보건실</div></div>
     ${S.settings.approval ? '<table style="width:auto;text-align:center;font-size:13px"><tr><td rowspan="2" style="width:22px;line-height:1.3">결<br>재</td><td style="width:72px">보건교사</td><td style="width:72px">교감</td><td style="width:72px">교장</td></tr><tr><td style="height:46px"></td><td></td><td></td></tr></table>' : ''}</div>
     <table style="margin-top:18px"><thead><tr><th style="width:28px">순</th><th style="width:48px">접수</th><th style="width:84px;white-space:nowrap">학년-반-번</th><th style="width:60px">이름</th><th>부위 · 증상</th><th>처치 내용</th><th style="width:150px">투약</th><th style="width:104px">조치</th><th style="width:48px">퇴실</th></tr></thead><tbody>
-    ${list.length ? list.map((v, i) => { const s2 = v.snap || student(v.sid) || {}; return `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${hm(v.at)}</td><td style="text-align:center">${clsText(s2)}</td><td style="text-align:center">${esc(s2.name)}</td><td>${esc(whatText(v))}</td><td>${esc([careText(v), v.temp ? '체온 ' + v.temp + '℃' : '', (v.calls || []).map((c) => '보호자(' + c.rel + ') 통화 ' + hm(c.at)).join(', ')].filter(Boolean).join(', '))}</td><td>${esc((v.drugs || []).map((x) => `${x.name} ${x.qty}${x.unit}`).join(', ') || '-')}</td><td>${esc(RESULT_LABEL[v.result] || '')}</td><td style="text-align:center">${v.doneAt ? hm(v.doneAt) : ''}</td></tr>`; }).join('') : '<tr><td colspan="9" style="text-align:center;padding:20px">이날 기록이 없어요</td></tr>'}
+    ${list.length ? list.map((v, i) => { const s2 = v.snap || student(v.sid) || {}; return `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${hm(v.at)}</td><td style="text-align:center">${clsText(s2)}</td><td style="text-align:center">${esc(s2.name)}</td><td>${esc(whatText(v))}${v.obs ? `<div style="font-size:12px;margin-top:2px">관찰: ${esc(obsText(v.obs))}</div>` : ''}</td><td>${esc([careText(v), v.temp ? '체온 ' + v.temp + '℃' : '', (v.calls || []).map((c) => '보호자(' + c.rel + ') 통화 ' + hm(c.at)).join(', ')].filter(Boolean).join(', '))}</td><td>${esc((v.drugs || []).map((x) => `${x.name} ${x.qty}${x.unit}`).join(', ') || '-')}</td><td>${esc(RESULT_LABEL[v.result] || '')}</td><td style="text-align:center">${v.doneAt ? hm(v.doneAt) : ''}</td></tr>`; }).join('') : '<tr><td colspan="9" style="text-align:center;padding:20px">이날 기록이 없어요</td></tr>'}
     </tbody></table>
     <div style="margin-top:14px;font-size:14px">총 ${list.length}건${RESULTS.filter(([id]) => res[id]).map(([id, l]) => ` · ${l} ${res[id]}`).join('')} · 투약 ${list.filter((v) => (v.drugs || []).length).length}건</div>
     <div class="between" style="margin-top:24px;font-size:12px;color:#444"><span>출력 ${kdate(now())} ${hm(now())} · 똑똑! 보건실 접수 도우미</span><span>1 / 1</span></div>
@@ -852,11 +910,11 @@ function vConfig() {
       </div></div>
   </section>
 
-  <section class="card stack"><div class="between"><h2 style="font-size:19px">명렬표·보호자 번호 <span class="small muted" style="font-weight:400">${S.roster.length}명</span></h2>
+  <section class="card stack"><div class="between"><h2 style="font-size:19px">명렬표 <span class="small muted" style="font-weight:400">${S.roster.length}명</span></h2>
     <div class="row"><button class="btn ghost" data-act="rosterTemplate">양식 내려받기</button><label class="btn" style="cursor:pointer">엑셀·CSV 올리기<input type="file" accept=".xlsx,.xls,.csv" data-act-change="rosterFile" style="display:none"></label></div></div>
-    <div class="small muted">양식 열: 학년 · 반 · 번호 · 이름 · 보호자1 관계 · 보호자1 전화 · 보호자2 관계 · 보호자2 전화 · 주의 메모. 올리면 지금 명단을 바꿔요. 새 학년도에는 지난해 학생과 이름·학년으로 자동으로 이어져요.</div>
+    <div class="small muted">양식 열: 학년 · 반 · 번호 · 이름 · 주의 메모. 보호자 전화번호는 넣지 않아요. 올리면 지금 명단을 바꿔요. 새 학년도에는 지난해 학생과 이름·학년으로 자동으로 이어져요.</div>
     ${T.rosterPreview ? `<div class="note t stack" style="color:var(--ink)"><b>${T.rosterPreview.list.length}명을 읽었어요${T.rosterPreview.linked ? ` · 지난해 기록과 이어질 학생 ${T.rosterPreview.linked}명` : ''}</b><div class="row"><button class="btn" data-act="rosterApply">이 명단으로 바꾸기</button><button class="link" data-act="rosterCancel">취소</button></div></div>` : ''}
-    ${S.roster.length ? `<div class="scroll" style="max-height:340px;overflow:auto"><table class="t" style="min-width:700px"><thead><tr><th>학년-반-번</th><th>이름</th><th>보호자</th><th>주의 메모</th></tr></thead><tbody>${S.roster.slice().sort((a, b) => a.grade - b.grade || a.cls - b.cls || a.num - b.num).map((s) => `<tr><td>${clsText(s)}</td><td>${esc(s.name)}</td><td class="small">${esc((s.guardians || []).filter((g) => g.phone).map((g) => g.rel + ' ' + g.phone).join(' · ') || '-')}</td><td class="small muted">${esc(s.note || '')}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${S.roster.length ? `<div class="scroll" style="max-height:340px;overflow:auto"><table class="t" style="min-width:700px"><thead><tr><th>학년-반-번</th><th>이름</th><th>주의 메모</th></tr></thead><tbody>${S.roster.slice().sort((a, b) => a.grade - b.grade || a.cls - b.cls || a.num - b.num).map((s) => `<tr><td>${clsText(s)}</td><td>${esc(s.name)}</td><td class="small muted">${esc(s.note || '')}</td></tr>`).join('')}</tbody></table></div>` : ''}
   </section>
 
   <div class="cols">
@@ -888,10 +946,9 @@ function vYearEnd() {
   </section>
   <section class="card stack"><h2 style="font-size:19px"><span style="color:var(--teal)">2</span> 마감 파일</h2>
     <div class="between" style="border:1px solid var(--line);border-radius:12px;padding:14px 16px"><div><b>${y}학년도_보건실기록_${esc(S.school.name)}.xlsx</b><div class="small muted">전체 이용 기록 · 학생별 방문 횟수 · 월별·계통별 통계 · 투약 기록 · 약 재고</div></div><button class="btn ghost" data-act="yeDownload">미리 내려받기</button></div>
-    <label class="check small"><input type="checkbox" ${T.ye.noPhone ? 'checked' : ''} data-act="yeNoPhone" style="width:18px;height:18px;accent-color:var(--teal)">마감 파일과 지난 학년도 보관 자료에서 보호자 전화번호 빼기</label>
   </section>
   <section class="card stack"><h2 style="font-size:19px"><span style="color:var(--teal)">3</span> ${y + 1}학년도 새로 시작</h2>
-    <div class="tiles"><div class="note or"><b>비워지는 것</b><br>명렬표·보호자 번호<br>올해 접수·처치 기록 (파일과 지난 학년도로 옮겨짐)</div><div class="note g"><b>그대로 남는 것</b><br>약 목록과 재고<br>증상별 처치 목록<br>수업 일정·설정</div><div class="note g" style="background:#fff;border:1px dashed #B8C6C1"><b>새 학년도에 넣을 것</b><br>새 명렬표 (설정에서 올리기)<br>새 수업 일정</div></div>
+    <div class="tiles"><div class="note or"><b>비워지는 것</b><br>명렬표<br>올해 접수·처치 기록 (파일과 지난 학년도로 옮겨짐)</div><div class="note g"><b>그대로 남는 것</b><br>약 목록과 재고<br>증상별 처치 목록<br>수업 일정·설정</div><div class="note g" style="background:#fff;border:1px dashed #B8C6C1"><b>새 학년도에 넣을 것</b><br>새 명렬표 (설정에서 올리기)<br>새 수업 일정</div></div>
     <label class="small" for="yeIn" style="line-height:1.5">마감하면 되돌릴 수 없어요. 확인을 위해 <b>${y} 마감</b>이라고 적어 주세요.</label>
     <div class="row"><input id="yeIn" type="text" placeholder="${y} 마감" value="${esc(T.ye.typed)}" data-bind-ye="typed" style="width:220px;height:52px"><button class="btn warn" style="height:52px" data-act="yeClose" ${ok ? '' : 'disabled'}>파일 내려받고 ${y + 1}학년도 시작</button></div>
   </section>
@@ -944,8 +1001,8 @@ function writeBook(filename, sheets) {
 }
 function yearBook(y, visits, roster, noPhone) {
   const done = visits.filter((v) => v.status === 'done').sort((a, b) => a.at - b.at);
-  const rows = [['날짜', '접수', '학년', '반', '번호', '이름', '부위', '증상', '언제부터', '처치', '직접 입력 처치', '투약', '체온', '보호자 연락', '조치', '퇴실', '메모']];
-  done.forEach((v) => { const s = v.snap || {}; rows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, (v.parts || []).map((p) => PART_LABEL[p]).join(', '), (v.sym || []).map((x) => SYM_SHORT[x]).join(', '), (SINCE.find((x) => x[0] === v.since) || [])[1] || '', (v.cares || []).join(', '), (v.custom || []).join(', '), drugText(v), v.temp || '', (v.calls || []).map((c) => c.rel + ' ' + hm(c.at)).join(', '), RESULT_LABEL[v.result] || '', v.doneAt ? hm(v.doneAt) : '', v.memo || '']); });
+  const rows = [['날짜', '접수', '학년', '반', '번호', '이름', '부위', '증상', '언제부터', '관찰 부위·진단', '관찰 서술 기록', '처치', '직접 입력 처치', '투약', '체온', '보호자 연락', '조치', '퇴실', '메모']];
+  done.forEach((v) => { const s = v.snap || {}; rows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, (v.parts || []).map((p) => PART_LABEL[p]).join(', '), (v.sym || []).map((x) => SYM_SHORT[x]).join(', '), (SINCE.find((x) => x[0] === v.since) || [])[1] || '', obsText(v.obs, false), (v.obs && v.obs.note) || '', (v.cares || []).join(', '), (v.custom || []).join(', '), drugText(v), v.temp || '', (v.calls || []).map((c) => c.rel + ' ' + hm(c.at)).join(', '), RESULT_LABEL[v.result] || '', v.doneAt ? hm(v.doneAt) : '', v.memo || '']); });
   const per = {}; done.forEach((v) => { const s = v.snap || {}; const k = v.sid; per[k] = per[k] || { s, n: 0, d: 0 }; per[k].n++; if ((v.drugs || []).length) per[k].d++; });
   const perRows = [['학년', '반', '번호', '이름', '방문 횟수', '투약 횟수']].concat(Object.values(per).sort((a, b) => b.n - a.n).map((p) => [p.s.grade, p.s.cls, p.s.num, p.s.name, p.n, p.d]));
   const mat = Object.fromEntries(CATS.map((c) => [c, Array(12).fill(0)])); done.forEach((v) => { mat[S.symCat[(v.sym || [])[0]] || '기타'][mIndex(v.at)]++; });
@@ -953,7 +1010,6 @@ function yearBook(y, visits, roster, noPhone) {
   const drugRows = [['날짜', '시각', '학년', '반', '번호', '이름', '약', '양']]; done.forEach((v) => (v.drugs || []).forEach((d) => { const s = v.snap || {}; drugRows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, d.name, d.qty + d.unit]); }));
   const stockRows = [['약 이름', '종류', '남은 양', '단위', '유통기한(묶음별)', '보관 위치']].concat(S.drugs.map((d) => [d.name, d.kind, drugTotal(d), d.unit, d.lots.map((l) => kexp(l.exp) + ' ' + l.qty + d.unit).join(' / '), uniq(d.lots.map((l) => l.loc).filter(Boolean)).join(', ')]));
   const sheets = { '전체 이용 기록': rows, '학생별 방문 횟수': perRows, '월별·계통별 통계': statRows, '투약 기록': drugRows, '약 재고': stockRows };
-  if (!noPhone && roster) sheets['명렬표·보호자'] = [['학년', '반', '번호', '이름', '보호자', '주의 메모']].concat(roster.map((s) => [s.grade, s.cls, s.num, s.name, (s.guardians || []).filter((g) => g.phone).map((g) => g.rel + ' ' + g.phone).join(' / '), s.note || '']));
   return sheets;
 }
 function parseRoster(aoa) {
@@ -968,10 +1024,7 @@ function parseRoster(aoa) {
   aoa.slice(h + 1).forEach((r) => {
     const name = get(r, ci.name); const grade = parseInt(get(r, ci.grade), 10); const cls = parseInt(get(r, ci.cls), 10); const num = parseInt(get(r, ci.num), 10);
     if (!name || !grade || !cls || !num) return;
-    const guardians = [];
-    if (get(r, ci.p1)) guardians.push({ rel: get(r, ci.r1) || '보호자', phone: get(r, ci.p1) });
-    if (get(r, ci.p2)) guardians.push({ rel: get(r, ci.r2) || '보호자', phone: get(r, ci.p2) });
-    list.push({ id: uid(), grade, cls, num, name, guardians, note: get(r, ci.note), prev: [] });
+    list.push({ id: uid(), grade, cls, num, name, note: get(r, ci.note), prev: [] });
   });
   if (!list.length) throw new Error('학생을 한 명도 읽지 못했어요. 학년·반·번호·이름 열을 확인해 주세요.');
   let linked = 0;
@@ -1021,7 +1074,7 @@ function sampleData(name) {
   const giv = ['서준', '하윤', '도윤', '지우', '시우', '서아', '하준', '지안', '은우', '수아', '예준', '하은', '지호', '하늘', '유나', '도현', '지유', '시윤', '건우', '채원', '민재', '소율', '태윤', '다인', '주원', '서연', '우진', '나은', '지민', '윤서'];
   for (let g = 1; g <= 6; g++) for (let c = 1; c <= 2; c++) for (let n = 1; n <= 18; n++) {
     const nm = pick(sur) + pick(giv);
-    s.roster.push({ id: uid() + n, grade: g, cls: c, num: n, name: nm, guardians: [{ rel: '어머니', phone: '010-0000-' + String(1000 + Math.floor(R() * 8999)) }, ...(R() > 0.5 ? [{ rel: '아버지', phone: '010-0000-' + String(1000 + Math.floor(R() * 8999)) }] : [])], note: '', prev: [] });
+    s.roster.push({ id: uid() + n, grade: g, cls: c, num: n, name: nm, note: '', prev: [] });
   }
   s.schedule = { 1: { 3: '3학년 2반 교실', 4: '5학년 1반 교실' }, 2: { 2: '6학년 1반 교실', 5: '4학년 1반 교실' }, 3: { 1: '4학년 2반 교실', 4: '3학년 1반 교실' }, 4: { 3: '6학년 2반 교실' }, 5: { 2: '5학년 2반 교실' } };
   const t0 = now(); const day = 86400000; const d0 = (n) => ymd(t0 + n * day);
@@ -1103,12 +1156,16 @@ const A = {
   tFav: () => { const f = form(curVisit()); f.saveFav = !f.saveFav; },
   tCall: (i) => { const f = form(curVisit()); f.calls[i] = f.calls[i] ? 0 : now(); render(); },
   tResult: (a) => { form(curVisit()).result = a; render(); },
+  oPart: (a) => { const o = form(curVisit()).obs; o.parts[a] = !o.parts[a]; render(); },
+  oNext: () => { const o = form(curVisit()).obs; if (!Object.values(o.parts).some(Boolean)) return; o.step = 'dx'; render(); },
+  oBack: () => { form(curVisit()).obs.step = 'body'; render(); },
+  oDx: (a) => { const o = form(curVisit()).obs; o.dx[a] = !o.dx[a]; render(); },
   saveVisit: (next) => {
     const v = curVisit(); if (!v) return; const f = form(v); const st = student(v.sid) || {};
     const cares = Object.keys(f.cares).filter((k) => f.cares[k]);
     if (!cares.length && !f.custom.length && !Object.keys(f.drugs).length) { toast('처치를 하나 이상 골라 주세요'); return; }
     v.cares = cares; v.custom = f.custom.slice(); v.temp = f.temp; v.memo = f.memo; v.result = f.result; v.status = 'done'; v.doneAt = now(); if (!v.calledAt) v.calledAt = v.at;
-    v.calls = Object.keys(f.calls).filter((k) => f.calls[k]).map((k) => ({ rel: (st.guardians || [])[k]?.rel || '보호자', at: f.calls[k] }));
+    const ob = obsOf(f); if (ob) v.obs = ob; else delete v.obs;
     v.drugs = S.drugs.filter((d) => f.drugs[d.id]).map((d) => { const q = f.drugs[d.id]; const note = `처치 · ${clsText(v.snap)} ${v.snap.name}`; if (d.counted) deduct(d, q, note); else S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: -0, qtyText: '사용 ' + q + '회', note }); return { id: d.id, name: d.name, qty: q, unit: d.counted ? d.unit : '회' }; });
     if (f.saveFav && f.custom.length) { const k = (v.sym || ['etc'])[0]; S.careCustom[k] = uniq([...(S.careCustom[k] || []), ...f.custom]); }
     delete T.f[v.id]; T.cur = null; if (S.call && S.call.vid === v.id) S.call = null; save();
@@ -1116,7 +1173,8 @@ const A = {
     if (next) A.callNext(); else render();
   },
   cancelVisit: async (id) => { const ok = await ask('접수를 취소할까요?', '학생이 돌아갔거나 잘못 접수했을 때 써요. 기록부에는 남지 않아요.', '접수 취소', true); if (!ok) return; const v = S.visits.find((x) => x.id === id); if (v) v.status = 'cancel'; T.cur = null; save(); render(); },
-  reopen: (id) => { const v = S.visits.find((x) => x.id === id); if (!v) return; T.f[v.id] = { cares: Object.fromEntries((v.cares || []).map((c) => [c, true])), drugs: Object.fromEntries((v.drugs || []).map((d) => [d.id, d.qty])), custom: (v.custom || []).slice(), draft: '', saveFav: false, temp: v.temp || '', memo: v.memo || '', result: v.result || 'back', calls: {} };
+  reopen: (id) => { const v = S.visits.find((x) => x.id === id); if (!v) return; T.f[v.id] = { cares: Object.fromEntries((v.cares || []).map((c) => [c, true])), drugs: Object.fromEntries((v.drugs || []).map((d) => [d.id, d.qty])), custom: (v.custom || []).slice(), draft: '', saveFav: false, temp: v.temp || '', memo: v.memo || '', result: v.result || 'back', calls: {},
+      obs: v.obs ? { step: 'dx', parts: Object.fromEntries((v.obs.parts || []).map((p) => [p, true])), dx: Object.fromEntries((v.obs.dx || []).map((x) => [x.p + '|' + x.d, true])) } : undefined, obsNote: v.obs ? v.obs.note || '' : '' };
     (v.drugs || []).forEach((d) => { const dr = S.drugs.find((x) => x.id === d.id); if (dr && dr.counted) { dr.lots.push({ id: uid(), exp: dr.lots.map((l) => l.exp).sort()[0] || ymd(now() + 365 * 86400000), qty: d.qty, loc: '' }); S.stockLog.unshift({ at: now(), did: dr.id, name: dr.name, delta: d.qty, qtyText: d.qty + dr.unit, note: '기록 고치기로 되돌림' }); } });
     v.status = 'called'; T.cur = v.id; save(); render(); window.scrollTo(0, 0); },
   walkOpen: () => { T.walk = T.walk ? null : { grade: '', cls: '', sid: '', sym: '' }; render(); },
@@ -1155,7 +1213,7 @@ const A = {
   careSym: (s) => { T.careSym = s; render(); },
   careAdd: () => { const i = document.getElementById('careNew'); const t = i.value.trim(); if (!t) return; S.careCustom[T.careSym] = uniq([...(S.careCustom[T.careSym] || []), t]); save(); render(); },
   careDel: (i) => { S.careCustom[T.careSym].splice(Number(i), 1); save(); render(); },
-  rosterTemplate: () => writeBook('똑똑_명렬표_양식.xlsx', { '명렬표': [['학년', '반', '번호', '이름', '보호자1 관계', '보호자1 전화', '보호자2 관계', '보호자2 전화', '주의 메모'], [1, 1, 1, '김하늘', '어머니', '010-0000-0000', '아버지', '010-0000-0000', '']] }),
+  rosterTemplate: () => writeBook('똑똑_명렬표_양식.xlsx', { '명렬표': [['학년', '반', '번호', '이름', '주의 메모'], [1, 1, 1, '김하늘', '']] }),
   rosterApply: () => { S.roster = T.rosterPreview.list; T.rosterPreview = null; save(); render(); toast('명단을 바꿨어요'); },
   rosterCancel: () => { T.rosterPreview = null; render(); },
   backup: () => download(`똑똑_백업_${ymd(now())}.json`, new Blob([JSON.stringify(S)], { type: 'application/json' })),
@@ -1167,7 +1225,7 @@ const A = {
     const y = S.school.year; if (T.ye.typed.trim() !== `${y} 마감`) return;
     const ok = await ask(`${y}학년도를 마감할까요?`, `마감 파일을 내려받고, 명단과 올해 기록을 '지난 학년도'로 옮긴 뒤 ${y + 1}학년도를 시작해요.`, '마감하기', true); if (!ok) return;
     A.yeDownload();
-    const roster = S.roster.map((s) => ({ ...s, guardians: T.ye.noPhone ? [] : s.guardians }));
+    const roster = S.roster.map((s) => { const c = { ...s }; delete c.guardians; return c; });
     S.archives.push({ year: y, closedAt: now(), roster, visits: S.visits.filter((v) => v.status === 'done') });
     S.school.year = y + 1; S.roster = []; S.visits = []; S.call = null; T.ye.typed = ''; save(); render(); toast(`${y + 1}학년도를 시작했어요. 설정에서 새 명렬표를 올려 주세요`);
   },
@@ -1244,7 +1302,9 @@ window.KNOCK = {
   saveLocal: () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} },
   KEY,
   booted: () => BOOTED,
-  boot: () => { if (BOOTED) return; BOOTED = true; if (!location.hash) location.hash = 'start'; kioskGate(); render(); },
+  boot: () => { if (BOOTED) return; BOOTED = true;
+    const strip = (list) => { let n = 0; (list || []).forEach((st) => { if (st.guardians) { delete st.guardians; n++; } }); return n; };
+    if (strip(S.roster) + (S.archives || []).reduce((a, ar) => a + strip(ar.roster), 0)) save(); if (!location.hash) location.hash = 'start'; kioskGate(); render(); },
   refresh: () => { if (!BOOTED) return; if (route() !== 'kiosk' && typing()) { PENDING_RENDER = true; return; } if (route() === 'kiosk' && !K.authed) kioskGate(); render(); },
   route, ask, toast, SYMBOL, esc
 };
