@@ -135,7 +135,7 @@ table.t td{padding:9px 8px;border-bottom:1px solid #EEF2F0;vertical-align:top}
 <div id="overlay"></div>
 <script>
 'use strict';
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 // 만든 사람 (공동 작업) — 이어 만드는 선생님 이름을 이 목록에 더하면 첫 화면·설정 아래에 함께 보여요
 const CREDITS = ['음악적체육인'];
 const creditText = () => '만든 사람 ' + CREDITS.join(' · ');
@@ -235,7 +235,7 @@ function load() {
 }
 let S = load() || blankState();
 if (!S.school.code) { S.school.code = newCode(); }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { STORAGE_OK = false; toast('이 브라우저에는 저장할 수 없어요. 창을 닫으면 사라져요'); } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { STORAGE_OK = false; toast('이 브라우저에는 저장할 수 없어요. 창을 닫으면 사라져요'); } if (window.CLOUD) window.CLOUD.dirty(); }
 window.addEventListener('storage', (e) => { if (e.key === KEY && e.newValue) { S = Object.assign(blankState(), JSON.parse(e.newValue)); render(); } });
 
 /* ---------- 화면 상태 ---------- */
@@ -384,7 +384,7 @@ function vSetup() {
   <p class="muted" style="margin:0;line-height:1.6">학교 이름을 넣고 시작해요. 처음이면 '예시 자료로 둘러보기'로 학생 명단과 지난 기록이 들어간 상태를 먼저 살펴볼 수 있어요.</p>
   <label class="f">학교 이름<input id="setupName" type="text" placeholder="예: 햇살초등학교"></label>
   <div class="row"><button class="btn big" data-act="setupStart">빈 상태로 시작</button><button class="btn big ghost" data-act="setupSample">예시 자료로 둘러보기</button></div>
-  <div class="note g small">이 판은 지금 쓰는 기기(브라우저) 안에만 저장돼요. 태블릿·PC·휴대폰이 함께 보려면 다음 판(파이어베이스 연결)이 필요해요. 같은 PC에서 창을 두 개 열면 학생 화면과 선생님 화면을 함께 시험할 수 있어요.</div>
+  <div class="note g small">기록은 보건실 비밀번호로 암호화되어 클라우드(파이어베이스)에 저장돼요. 같은 구글 계정으로 로그인한 태블릿·PC가 같은 기록을 함께 봐요.</div>
   </div></div>`;
 }
 function vStart() {
@@ -1153,7 +1153,7 @@ const A = {
   rosterApply: () => { S.roster = T.rosterPreview.list; T.rosterPreview = null; save(); render(); toast('명단을 바꿨어요'); },
   rosterCancel: () => { T.rosterPreview = null; render(); },
   backup: () => download(`똑똑_백업_${ymd(now())}.json`, new Blob([JSON.stringify(S)], { type: 'application/json' })),
-  wipe: async () => { const v = await ask('모든 자료를 지울까요?', '명단, 기록, 약품, 설정이 모두 사라지고 되돌릴 수 없어요. 확인을 위해 <b>지우기</b>라고 적어 주세요.', '모두 지우기', true, { ph: '지우기' }); if (v !== '지우기') { if (v !== null) toast('글자가 달라서 지우지 않았어요'); return; } S = blankState(); save(); go('start'); },
+  wipe: async () => { const v = await ask('모든 자료를 지울까요?', '명단, 기록, 약품, 설정이 <b>연결된 모든 기기와 클라우드에서</b> 사라지고 되돌릴 수 없어요. 확인을 위해 <b>지우기</b>라고 적어 주세요.', '모두 지우기', true, { ph: '지우기' }); if (v !== '지우기') { if (v !== null) toast('글자가 달라서 지우지 않았어요'); return; } S = blankState(); save(); go('start'); },
   // 마감
   yeNoPhone: () => { T.ye.noPhone = !T.ye.noPhone; },
   yeDownload: () => { writeBook(`${S.school.year}학년도_보건실기록_${S.school.name}.xlsx`, yearBook(S.school.year, S.visits, S.roster, T.ye.noPhone)); },
@@ -1181,7 +1181,7 @@ const CH = {
   purMatch: (el) => { const r = T.pur.rows[Number(el.dataset.arg)]; r.match = el.value; const d = S.drugs.find((x) => x.id === el.value); if (d) r.unit = d.unit; render(); },
   purFile: async (el) => { const f = el.files[0]; if (!f) return; try { const aoa = await readTable(f); T.pur = { file: f.name, aoa, hdr: Math.max(0, aoa.findIndex((r) => r.some((c) => /품\s*명|품\s*목/.test(String(c))))), cols: {}, rows: [] }; guessPurCols(); buildPurRows(); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } },
   rosterFile: async (el) => { const f = el.files[0]; if (!f) return; try { T.rosterPreview = parseRoster(await readTable(f)); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } },
-  restore: async (el) => { const f = el.files[0]; if (!f) return; try { const s = JSON.parse(await f.text()); if (!s.school) throw new Error(); const ok = await ask('백업 파일로 되살릴까요?', '지금 이 기기의 자료가 백업 파일 내용으로 바뀌어요.', '되살리기', true); if (!ok) return; S = Object.assign(blankState(), s); save(); render(); toast('되살렸어요'); } catch (e) { toast('똑똑! 백업 파일이 아니에요'); } }
+  restore: async (el) => { const f = el.files[0]; if (!f) return; try { const s = JSON.parse(await f.text()); if (!s.school) throw new Error(); const ok = await ask('백업 파일로 되살릴까요?', '연결된 모든 기기의 자료가 백업 파일 내용으로 바뀌어요.', '되살리기', true); if (!ok) return; S = Object.assign(blankState(), s); save(); render(); toast('되살렸어요'); } catch (e) { toast('똑똑! 백업 파일이 아니에요'); } }
 };
 function guessPurCols() {
   const p = T.pur; const hdr = (p.aoa[p.hdr] || []).map((c) => String(c).replace(/\s/g, ''));
@@ -1220,9 +1220,24 @@ document.addEventListener('input', (e) => {
 });
 document.addEventListener('change', (e) => { const el = e.target; if (el.dataset && (el.dataset.bindSched || el.dataset.bindForm === 'exp'))  render(); });
 
-if (!location.hash) location.hash = 'start';
-kioskGate();
-render();
+/* ---------- 시작 (클라우드 연결 뒤에 시작해요) ---------- */
+let BOOTED = false, PENDING_RENDER = false;
+const typing = () => { const a = document.activeElement; return !!(a && a.matches && a.matches('input,textarea,select')); };
+document.addEventListener('focusout', () => { if (!PENDING_RENDER) return; setTimeout(() => { if (!PENDING_RENDER || typing()) return; PENDING_RENDER = false; render(); }, 60); });
+window.KNOCK = {
+  getS: () => S,
+  setS: (x) => { S = Object.assign(blankState(), x); },
+  blankState,
+  saveLocal: () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} },
+  KEY,
+  booted: () => BOOTED,
+  boot: () => { if (BOOTED) return; BOOTED = true; if (!location.hash) location.hash = 'start'; kioskGate(); render(); },
+  refresh: () => { if (!BOOTED) return; if (route() !== 'kiosk' && typing()) { PENDING_RENDER = true; return; } if (route() === 'kiosk' && !K.authed) kioskGate(); render(); },
+  route, ask, toast, SYMBOL, esc
+};
+document.getElementById('app').innerHTML = '<div class="wrap" style="max-width:520px"><div class="card" style="margin-top:60px;text-align:center"><p class="muted">연결하는 중…</p></div></div>';
+setTimeout(() => { if (!window.CLOUD_LOADED) document.getElementById('app').innerHTML = '<div class="wrap" style="max-width:520px"><div class="card stack" style="margin-top:60px"><h2 style="font-size:20px">화면을 불러오지 못했어요</h2><p class="muted small" style="margin:0">브라우저가 너무 오래됐거나 인터넷 연결이 불안정해요. 최신 크롬·사파리·엣지에서 다시 열어 주세요.</p><button class="btn" onclick="location.reload()">다시 열기</button></div></div>'; }, 20000);
 </script>
+<script type="module" src="cloud.js"></script>
 </body>
 </html>
