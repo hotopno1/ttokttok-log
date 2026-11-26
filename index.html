@@ -719,12 +719,20 @@ function vSpecial() {
       <label class="f" style="width:110px">학년<select data-act-change="spSet" data-arg="grade" ${P.editId ? 'disabled' : ''}><option value="">학년</option>${grades.map((g) => `<option value="${g}" ${String(P.grade) === String(g) ? 'selected' : ''}>${g}학년</option>`).join('')}</select></label>
       <label class="f" style="width:100px">반<select data-act-change="spSet" data-arg="cls" ${P.editId ? 'disabled' : ''}><option value="">반</option>${classes.map((c) => `<option value="${c}" ${String(P.cls) === String(c) ? 'selected' : ''}>${c}반</option>`).join('')}</select></label>
       <label class="f" style="width:200px">번호·이름<select data-act-change="spSet" data-arg="sid" ${P.editId ? 'disabled' : ''}><option value="">학생</option>${kids.map((s) => `<option value="${s.id}" ${P.sid === s.id ? 'selected' : ''}>${s.num}번 ${esc(s.name)}</option>`).join('')}</select></label>
-      <label class="f" style="width:160px">치료 상태<select data-act-change="spSet" data-arg="status">${SP_STATUS.map((x) => `<option ${P.status === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+      <label class="f" style="width:160px">치료 상태<select data-act-change="spSet" data-arg="status">${uniq([...SP_STATUS, ...(P.status ? [P.status] : [])]).map((x) => `<option ${P.status === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></label>
     </div>
     <label class="f">질환<input id="spDisease" type="text" value="${esc(P.disease)}" data-bind-sp="disease" placeholder="예: 천식, 땅콩 알레르기"></label>
     <div class="chips" style="gap:6px;margin-top:-4px">${SP_DISEASE.map((d) => `<button class="chip sm" data-act="spPick" data-arg="${esc(d)}">${esc(d)}</button>`).join('')}</div>
     <label class="f">관리 방법<textarea id="spManage" rows="3" data-bind-sp="manage" placeholder="예: 흡입기 가방 앞주머니 지참, 발작 시 흡입기 사용 후 보호자 연락">${esc(P.manage)}</textarea></label>
     <div class="row"><button class="btn" data-act="spSave">${P.editId ? '고친 내용 저장' : '등록하기'}</button>${P.editId ? '<button class="link" data-act="spCancel">취소</button>' : ''}</div>
+  </section>
+  <section class="card stack"><h2 style="font-size:19px">엑셀로 한 번에 등록 <span class="small muted" style="font-weight:400">학기 초 건강 조사 결과를 양식에 옮겨 올려요</span></h2>
+    <div class="small muted">양식 열: 학년 · 반 · 번호 · 이름 · 질환 · 치료 상태 · 관리 방법. 한 학생에게 질환이 여러 개면 줄을 나눠 적어도 돼요. 이미 등록된 학생의 같은 질환은 새 내용으로 바뀌어요.</div>
+    <div class="row"><button class="btn ghost" data-act="spTemplate">양식 내려받기</button><label class="btn" style="cursor:pointer">엑셀·CSV 올리기<input type="file" accept=".xlsx,.xls,.csv" data-act-change="spFile" style="display:none"></label></div>
+    ${T.spImport ? `<div class="note t stack" style="color:var(--ink)"><b>${T.spImport.ok.length}건을 읽었어요 (학생 ${uniq(T.spImport.ok.map((r) => r.st.id)).length}명)${T.spImport.miss.length ? ` · 명단에서 찾지 못한 줄 ${T.spImport.miss.length}개` : ''}</b>
+      ${T.spImport.ok.length ? `<div class="small" style="line-height:1.7">${T.spImport.ok.slice(0, 8).map((r) => `${clsText(r.st)} ${esc(r.st.name)} · ${esc(r.disease)}`).join('<br>')}${T.spImport.ok.length > 8 ? `<br>… 외 ${T.spImport.ok.length - 8}건` : ''}</div>` : ''}
+      ${T.spImport.miss.length ? `<div class="small" style="color:var(--or-d);line-height:1.7"><b>찾지 못한 줄</b> (명렬표에 없는 학생이에요 · 학년·반·번호·이름을 확인해 주세요)<br>${T.spImport.miss.slice(0, 8).map((r) => esc(r)).join('<br>')}${T.spImport.miss.length > 8 ? `<br>… 외 ${T.spImport.miss.length - 8}줄` : ''}</div>` : ''}
+      <div class="row">${T.spImport.ok.length ? `<button class="btn" data-act="spImportApply">${T.spImport.ok.length}건 등록하기</button>` : ''}<button class="link" data-act="spImportCancel">취소</button></div></div>` : ''}
   </section>
   <section class="card stack"><div class="between"><h2 style="font-size:19px">등록한 학생</h2><input type="text" style="max-width:240px;height:40px" placeholder="이름·질환으로 찾기" id="spQ" data-filter="1"></div>
     ${shown.length ? `<div class="scroll"><table class="t" style="min-width:900px"><thead><tr><th style="width:90px">학년-반-번</th><th style="width:100px">이름</th><th style="width:160px">질환</th><th style="width:110px">치료 상태</th><th>관리 방법</th><th style="width:110px">등록일</th><th style="width:96px"></th></tr></thead><tbody>${shown.map((x) => `<tr data-frow="${esc((x.st.name || '') + ' ' + x.disease + ' ' + clsText(x.st))}"><td>${clsText(x.st)}</td><td class="b">${esc(x.st.name || '')}</td><td>${esc(x.disease)}</td><td><span class="tag ${x.status === '완치' ? '' : 't'}">${esc(x.status || '')}</span></td><td style="white-space:pre-wrap">${esc(x.manage || '')}</td><td class="small muted">${kdate(x.at)}</td><td><button class="link" data-act="spEdit" data-arg="${x.id}">고치기</button> <button class="link" style="color:var(--or-d)" data-act="spDel" data-arg="${x.id}">지우기</button></td></tr>`).join('')}</tbody></table></div>` : `<div class="muted small">${q ? '찾는 학생이 없어요' : '아직 등록한 학생이 없어요'}</div>`}
@@ -1200,6 +1208,26 @@ function parseCSV(text) {
   return rows.map((r) => r.map((x) => x.replace(/^﻿/, '')));
 }
 function download(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+function parseSpecial(aoa) {
+  const h = aoa.findIndex((r) => r.some((c) => String(c).includes('이름')));
+  if (h < 0) throw new Error("'이름' 제목이 있는 줄을 찾지 못했어요. 양식을 내려받아 맞춰 주세요.");
+  const hdr = aoa[h].map((c) => String(c).replace(/\s/g, ''));
+  const col = (...keys) => hdr.findIndex((c) => keys.some((k) => c.includes(k)));
+  const ci = { grade: col('학년'), cls: hdr.findIndex((c) => c === '반' || (c.includes('반') && !c.includes('번'))), num: col('번호'), name: col('이름'), dis: col('질환', '병명', '진단'), st: col('치료상태', '상태'), man: col('관리') };
+  if (ci.dis < 0) throw new Error("'질환' 제목을 찾지 못했어요. 양식을 내려받아 맞춰 주세요.");
+  const get = (r, i) => i >= 0 ? String(r[i] ?? '').trim() : '';
+  const ok = [], miss = [];
+  aoa.slice(h + 1).forEach((r) => {
+    const name = get(r, ci.name), disease = get(r, ci.dis); if (!name && !disease) return; if (!disease) return;
+    const g = parseInt(get(r, ci.grade), 10), c = parseInt(get(r, ci.cls), 10), n = parseInt(get(r, ci.num), 10);
+    let st = S.roster.find((s) => s.grade === g && s.cls === c && s.num === n && (!name || s.name === name));
+    if (!st && name) { const c2 = S.roster.filter((s) => s.name === name && (!g || s.grade === g)); if (c2.length === 1) st = c2[0]; }
+    if (!st) { miss.push(`${g || '?'}-${c || '?'}-${n || '?'} ${name} · ${disease}`); return; }
+    ok.push({ st, disease, status: get(r, ci.st) || '치료 중', manage: get(r, ci.man) });
+  });
+  if (!ok.length && !miss.length) throw new Error('읽을 줄이 없어요. 질환 칸이 비어 있지 않은지 확인해 주세요.');
+  return { ok, miss };
+}
 function writeBook(filename, sheets) {
   if (window.XLSX) { const wb = XLSX.utils.book_new(); Object.entries(sheets).forEach(([n, aoa]) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), n.slice(0, 31))); XLSX.writeFile(wb, filename); return; }
   const [n, aoa] = Object.entries(sheets)[0];
@@ -1374,6 +1402,13 @@ const A = {
     T.sp = { grade: P.grade, cls: P.cls, sid: '', disease: '', status: '치료 중', manage: '', editId: null }; save(); render();
   },
   spEdit: (id) => { const x = (S.special || []).find((y) => y.id === id); if (!x) return; const st = student(x.sid) || x.snap || {}; T.sp = { grade: st.grade, cls: st.cls, sid: x.sid, disease: x.disease, status: x.status || '치료 중', manage: x.manage || '', editId: x.id }; render(); window.scrollTo(0, 0); },
+  spTemplate: () => writeBook('똑똑_요보호학생_양식.xlsx', { '요보호 학생': [['학년', '반', '번호', '이름', '질환', '치료 상태', '관리 방법'], [1, 1, 1, '김하늘', '천식', '치료 중', '흡입기 가방 앞주머니 지참, 발작 시 흡입기 사용 후 보호자 연락'], [1, 1, 1, '김하늘', '땅콩 알레르기', '경과 관찰', '급식 땅콩 메뉴 확인']] }),
+  spImportCancel: () => { T.spImport = null; render(); },
+  spImportApply: () => {
+    const I = T.spImport; if (!I) return; S.special = S.special || []; let add = 0, upd = 0;
+    I.ok.forEach((r) => { const ex = S.special.find((x) => x.sid === r.st.id && x.disease === r.disease); if (ex) { Object.assign(ex, { status: r.status, manage: r.manage, upd: now() }); upd++; } else { S.special.push({ id: uid(), sid: r.st.id, snap: snap(r.st), disease: r.disease, status: r.status, manage: r.manage, at: now() }); add++; } });
+    T.spImport = null; save(); render(); toast(`${add}건 등록${upd ? ` · ${upd}건 고침` : ''}`);
+  },
   spCancel: () => { T.sp = null; render(); },
   spDel: async (id) => { const x = (S.special || []).find((y) => y.id === id); if (!x) return; const st = student(x.sid) || x.snap || {}; if (!(await ask('요보호 등록을 지울까요?', `<b>${esc(st.name || '')}</b> 학생의 '${esc(x.disease)}' 기록을 지워요.`, '지우기', true))) return; S.special = S.special.filter((y) => y.id !== id); save(); render(); },
   // 설정: 계통별 처치
@@ -1495,6 +1530,7 @@ const CH = {
   purHdr: (el) => { T.pur.hdr = Number(el.value); guessPurCols(); buildPurRows(); render(); },
   purMatch: (el) => { const r = T.pur.rows[Number(el.dataset.arg)]; r.match = el.value; const d = S.drugs.find((x) => x.id === el.value); if (d) r.unit = d.unit; render(); },
   purFile: async (el) => { const f = el.files[0]; if (!f) return; try { const aoa = await readTable(f); T.pur = { file: f.name, aoa, hdr: Math.max(0, aoa.findIndex((r) => r.some((c) => /품\s*명|품\s*목/.test(String(c))))), cols: {}, rows: [] }; guessPurCols(); buildPurRows(); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } },
+  spFile: async (el) => { const f = el.files[0]; if (!f) return; try { T.spImport = parseSpecial(await readTable(f)); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } el.value = ''; },
   rosterFile: async (el) => { const f = el.files[0]; if (!f) return; try { T.rosterPreview = parseRoster(await readTable(f)); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } },
   restore: async (el) => { const f = el.files[0]; if (!f) return; try { const s = JSON.parse(await f.text()); if (!s.school) throw new Error(); const ok = await ask('백업 파일로 되살릴까요?', '연결된 모든 기기의 자료가 백업 파일 내용으로 바뀌어요.', '되살리기', true); if (!ok) return; S = Object.assign(blankState(), s); save(); render(); toast('되살렸어요'); } catch (e) { toast('똑똑! 백업 파일이 아니에요'); } }
 };
