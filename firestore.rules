@@ -1,0 +1,36 @@
+rules_version = '2';
+// 똑똑! 보건실 접수 도우미 — Firestore 보안 규칙 (모든 학교 공통, 고치지 않고 그대로 붙여 넣어요)
+// 처음 로그인해서 '관리 계정'으로 정한 구글 계정과, 그 계정이 더한 '함께 쓰는 계정'만 열 수 있어요.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function ownerPath() { return /databases/$(database)/documents/meta/owner; }
+    function signedIn() { return request.auth != null; }
+    function isMember() {
+      return signedIn() && exists(ownerPath()) && (
+        request.auth.uid == get(ownerPath()).data.uid ||
+        (request.auth.token.email_verified == true &&
+         request.auth.token.email.lower() in get(ownerPath()).data.emails)
+      );
+    }
+
+    match /meta/owner {
+      allow read: if signedIn() && (!exists(ownerPath()) || isMember());
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.emails is list;
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.emails is list;
+    }
+    match /meta/crypto {
+      allow read, create: if isMember();
+    }
+    match /parts/{id} {
+      allow read, write: if isMember();
+    }
+    match /visits/{id} {
+      allow read, write: if isMember();
+    }
+  }
+}
