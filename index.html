@@ -106,6 +106,13 @@ table.log .cell.on{outline:2px solid var(--teal);outline-offset:-2px;background:
 .chip.sm{min-height:36px;padding:0 12px;font-size:14px}
 .pop{position:fixed;z-index:60;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:14px}
 .pop.sx{width:560px;max-width:calc(100vw - 24px);overflow:auto}
+/* 학생 추가 고르기 */
+.pop.add{width:520px;max-width:calc(100vw - 24px);overflow:auto}
+.pick{display:grid;gap:8px}.pick.g3{grid-template-columns:repeat(3,1fr)}.pick.g4{grid-template-columns:repeat(4,1fr)}.pick.g5{grid-template-columns:repeat(5,1fr)}
+.pk{min-height:48px;border:2px solid var(--line);background:#fff;border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
+.pk:hover{border-color:var(--teal);color:var(--teal-d)}
+.pk.nm{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;line-height:1.25}
+.pk.nm small{color:var(--muted);font-weight:400;font-size:12px}
 .pop.tx{width:520px;max-width:calc(100vw - 24px);overflow:auto}
 .pop .cats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;align-content:start;width:270px;flex-shrink:0}
 .pop .cat{border:0;background:none;text-align:left;padding:6px 8px;border-radius:8px;cursor:pointer;font:inherit;font-size:14px;white-space:nowrap}
@@ -357,7 +364,8 @@ function linkedVisits(st) {
 }
 const whatText = (v) => (v.sx && v.sx.length) ? v.sx.map((x) => sxLabel(v, x)).join(', ') : [(v.parts || []).map((p) => PART_LABEL[p] || p).join(', '), (v.sym || []).map((s) => SYM_SHORT[s] || s).join(', ')].filter(Boolean).join(' · ');
 const careText = (v) => [...(v.cares || []), ...(v.custom || [])].join(', ');
-const drugText = (v) => (v.drugs || []).map((d) => `${d.name} ${d.qty}${d.unit}`).join(', ');
+const drugOne = (d) => d.qty ? `${d.name} ${d.qty}${d.unit || ''}` : d.name;
+const drugText = (v) => (v.drugs || []).map(drugOne).join(', ');
 
 /* ---------- 소리 ---------- */
 let AC = null;
@@ -650,12 +658,11 @@ function addCandidates(q) {
 function vTeacher() {
   const q = queue().filter((x) => x.status === 'wait'); const rows = tableVisits();
   const last = S.call && S.visits.find((x) => x.id === S.call.vid);
-  const cands = addCandidates(T.addQ);
   const xbtn = (act, arg, label) => `<button class="x" aria-label="${esc(label)} 지우기" data-act="${act}" data-arg="${esc(arg)}">×</button>`;
   const rowHtml = (v, i) => {
     const s2 = student(v.sid) || v.snap || {}; const cc = ccText(v);
     const sx = (v.sx || []).map((x, j) => `<span class="cv">${esc(sxLabel(v, x))}${xbtn('sxDel', v.id + '|' + j, x.t)}</span>`).join('');
-    const tx = [...(v.cares || []).map((c, j) => `<span class="cv">${esc(c)}${xbtn('txDel', v.id + '|c|' + j, c)}</span>`), ...(v.custom || []).map((c, j) => `<span class="cv">${esc(c)}${xbtn('txDel', v.id + '|u|' + j, c)}</span>`), ...(v.drugs || []).map((d) => `<span class="cv drug">${esc(d.name)} ${d.qty}${esc(d.unit)}${xbtn('txDel', v.id + '|d|' + d.id, d.name)}</span>`)].join('');
+    const tx = [...(v.cares || []).map((c, j) => `<span class="cv">${esc(c)}${xbtn('txDel', v.id + '|c|' + j, c)}</span>`), ...(v.custom || []).map((c, j) => `<span class="cv">${esc(c)}${xbtn('txDel', v.id + '|u|' + j, c)}</span>`), ...(v.drugs || []).map((d) => `<span class="cv drug">${esc(drugOne(d))}${xbtn('txDel', v.id + '|d|' + d.id, d.name)}</span>`)].join('');
     const open = T.pop && T.pop.vid === v.id;
     return `<tr class="${open ? 'hl' : ''}">
       <td class="c">${i + 1}</td>
@@ -684,13 +691,25 @@ function vTeacher() {
       <thead><tr><th style="width:40px">No</th><th style="width:74px">학년/반</th><th style="width:150px">이름</th><th style="width:46px">이력</th><th style="min-width:170px">증상</th><th style="min-width:220px">처치 및 처방</th><th style="width:96px">입실</th><th style="width:96px">퇴실</th><th style="min-width:120px">메모</th><th style="width:40px"></th></tr></thead>
       <tbody>${rows.map(rowHtml).join('')}
       <tr class="add"><td class="c">${rows.length + 1}</td><td colspan="9">
-        <div class="row" style="flex-wrap:nowrap;gap:8px"><input id="addIn" type="text" style="max-width:320px" placeholder="학생 추가 · 이름 또는 1-2-13 적기" value="${esc(T.addQ || '')}" data-bind-root="addQ" data-live="1" data-enter="addFirst">${cands.length ? '<span class="xs muted">눌러서 추가</span>' : (T.addQ ? '<span class="xs muted">찾는 학생이 없어요</span>' : '<span class="xs muted">대기 목록에 없는 학생을 바로 적을 때 써요</span>')}</div>
-        ${cands.length ? `<div class="chips" style="margin-top:8px">${cands.map((s) => `<button class="chip" data-act="addRow" data-arg="${s.id}">${clsText(s)} ${esc(s.name)}</button>`).join('')}</div>` : ''}
+        <div class="row" style="gap:10px"><button class="btn line sm" data-cell="add" data-act="openAdd">+ 학생 추가</button><span class="xs muted">대기 목록에 없는 학생을 학년 → 반 → 이름 순서로 골라 바로 추가해요</span></div>
       </td></tr></tbody></table></div>
   </section>
   </div></main>${T.pop ? popHtml() : ''}${T.histPop ? histPopHtml() : ''}`;
 }
 function popHtml() {
+  if (T.pop.kind === 'add') {
+    const P = T.pop; const grades = uniq(S.roster.map((s) => s.grade)).sort((a, b) => a - b);
+    const classes = P.grade ? uniq(S.roster.filter((s) => s.grade === P.grade).map((s) => s.cls)).sort((a, b) => a - b) : [];
+    const kids = P.grade && P.cls ? S.roster.filter((s) => s.grade === P.grade && s.cls === P.cls).sort((a, b) => a.num - b.num) : [];
+    const step = !P.grade ? 1 : !P.cls ? 2 : 3;
+    const crumb = `<div class="row small" style="gap:6px"><button class="link" data-act="addGrade" data-arg="">학년</button>${P.grade ? ` › <button class="link" data-act="addGrade" data-arg="${P.grade}">${P.grade}학년</button>` : ''}${P.cls ? ` › <b>${P.cls}반</b>` : ''}</div>`;
+    let body;
+    if (!S.roster.length) body = '<div class="muted small">명단이 없어요 · 설정에서 명렬표를 먼저 올려 주세요</div>';
+    else if (step === 1) body = `<div class="xs b muted">학년을 골라요</div><div class="pick g3">${grades.map((g) => `<button class="pk" data-act="addGrade" data-arg="${g}">${g}학년</button>`).join('')}</div>`;
+    else if (step === 2) body = `<div class="xs b muted">반을 골라요</div><div class="pick g4">${classes.map((c) => `<button class="pk" data-act="addCls" data-arg="${c}">${c}반</button>`).join('')}</div>`;
+    else body = `<div class="xs b muted">이름을 누르면 표에 추가돼요</div><div class="pick g5">${kids.map((s) => `<button class="pk nm" data-act="addRow" data-arg="${s.id}"><small>${s.num}</small>${esc(s.name)}</button>`).join('')}</div>`;
+    return `<div id="pop" class="pop add"><div class="between" style="margin-bottom:8px"><b>학생 추가</b><button class="ico" aria-label="닫기" data-act="popClose">×</button></div>${crumb}<div class="stack" style="gap:8px;margin-top:10px">${body}</div></div>`;
+  }
   const v = S.visits.find((x) => x.id === T.pop.vid); if (!v) return '';
   const s2 = student(v.sid) || v.snap || {};
   const head = `<div class="between" style="margin-bottom:8px"><b>${esc(s2.name)} · ${T.pop.kind === 'sx' ? '증상' : '처치 및 처방'}</b><button class="ico" aria-label="닫기" data-act="popClose">×</button></div>`;
@@ -713,9 +732,8 @@ function popHtml() {
     <input id="popIn" type="text" placeholder="직접 입력 후 Enter" data-enter="popAdd" style="margin-bottom:10px">
     <div class="xs b muted" style="margin-bottom:6px">자주 쓰는 처치</div>
     <div class="chips" style="gap:6px">${quick.map((c) => `<button class="chip sm ${onC.has(c) ? 'on' : ''}" aria-pressed="${onC.has(c)}" data-act="txCare" data-arg="${esc(c)}">${esc(c)}</button>`).join('')}</div>
-    ${used.length ? `<div class="xs b muted" style="margin:12px 0 6px">쓴 약 <span style="font-weight:400">재고에서 바로 빠져요</span></div><div class="stack" style="gap:6px">${used.map((u) => `<div class="between" style="align-items:center;background:var(--or-s);border-radius:10px;padding:4px 6px 4px 12px"><b class="small">${esc(u.name)}</b><div class="stepper"><button aria-label="${esc(u.name)} 하나 줄이기" data-act="txDrugQ" data-arg="${u.id}|-1">−</button><b style="min-width:52px;text-align:center">${u.qty}${esc(u.unit)}</b><button aria-label="${esc(u.name)} 하나 늘리기" data-act="txDrugQ" data-arg="${u.id}|1">+</button></div></div>`).join('')}</div>` : ''}
-    <div class="xs b muted" style="margin:12px 0 6px">약</div>
-    <div class="chips drugs" style="gap:6px">${S.drugs.map((d) => { const on = used.some((u) => u.id === d.id); return `<button class="chip sm drug ${on ? 'on' : ''}" aria-pressed="${on}" data-act="txDrug" data-arg="${d.id}">${esc(d.name)}<small>${d.counted ? `재고 ${drugTotal(d)}${esc(d.unit)}` : '횟수만'}</small></button>`; }).join('') || '<span class="xs muted">약품·재고에서 약을 더해 주세요</span>'}</div>
+    <div class="xs b muted" style="margin:12px 0 6px">투약</div>
+    <div class="chips drugs" style="gap:6px">${S.drugs.map((d) => { const on = used.some((u) => u.id === d.id); return `<button class="chip sm drug ${on ? 'on' : ''}" aria-pressed="${on}" data-act="txDrug" data-arg="${d.id}">${esc(d.name)}</button>`; }).join('') || '<span class="xs muted">약품·재고에서 약을 더해 주세요</span>'}</div>
     <button class="btn sm" style="margin-top:12px" data-act="popClose">선택 완료</button></div>`;
 }
 function histPopHtml() {
@@ -725,7 +743,7 @@ function histPopHtml() {
 }
 function placePop() {
   const p = document.getElementById('pop'); if (!p || !T.pop) return;
-  const cell = document.querySelector(`[data-cell="${T.pop.vid}|${T.pop.kind}"]`); if (!cell) return;
+  const cell = document.querySelector(T.pop.kind === 'add' ? '[data-cell="add"]' : `[data-cell="${T.pop.vid}|${T.pop.kind}"]`); if (!cell) return;
   const r = cell.getBoundingClientRect(); const w = p.offsetWidth, h = p.offsetHeight;
   let left = Math.min(r.left, window.innerWidth - w - 12); left = Math.max(12, left);
   const below = window.innerHeight - r.bottom - 14, above = r.top - 14;
@@ -738,7 +756,7 @@ window.addEventListener('resize', placePop);
 window.addEventListener('scroll', placePop, true);
 document.addEventListener('click', (e) => {
   if (!T.pop && !T.histPop) return;
-  if (e.target.closest('#pop,#histPop,[data-act="openPop"],[data-act="histPop"],.modalbg')) return;
+  if (e.target.closest('#pop,#histPop,[data-act="openPop"],[data-act="openAdd"],[data-act="histPop"],.modalbg')) return;
   T.pop = null; T.histPop = null; render();
 });
 function drugRestore(d, qty, note) {
@@ -928,7 +946,7 @@ function vPrint() {
     <div class="between" style="align-items:flex-start"><div><h1 style="font-size:26px;font-weight:900">보건실 이용 기록부</h1><div style="margin-top:6px">${dt.getFullYear()}년 ${dt.getMonth() + 1}월 ${dt.getDate()}일(${WD[dt.getDay()]}) · ${esc(S.school.name)} 보건실</div></div>
     ${S.settings.approval ? '<table style="width:auto;text-align:center;font-size:13px"><tr><td rowspan="2" style="width:22px;line-height:1.3">결<br>재</td><td style="width:72px">보건교사</td><td style="width:72px">교감</td><td style="width:72px">교장</td></tr><tr><td style="height:46px"></td><td></td><td></td></tr></table>' : ''}</div>
     <table style="margin-top:18px"><thead><tr><th style="width:28px">순</th><th style="width:48px">접수</th><th style="width:84px;white-space:nowrap">학년-반-번</th><th style="width:60px">이름</th><th>부위 · 증상</th><th>처치 내용</th><th style="width:150px">투약</th><th style="width:104px">조치</th><th style="width:48px">퇴실</th></tr></thead><tbody>
-    ${list.length ? list.map((v, i) => { const s2 = v.snap || student(v.sid) || {}; return `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${hm(v.at)}</td><td style="text-align:center">${clsText(s2)}</td><td style="text-align:center">${esc(s2.name)}</td><td>${esc(whatText(v))}${v.obs ? `<div style="font-size:12px;margin-top:2px">관찰: ${esc(obsText(v.obs))}</div>` : ''}</td><td>${esc([careText(v), v.temp ? '체온 ' + v.temp + '℃' : '', (v.calls || []).map((c) => '보호자(' + c.rel + ') 통화 ' + hm(c.at)).join(', ')].filter(Boolean).join(', '))}</td><td>${esc((v.drugs || []).map((x) => `${x.name} ${x.qty}${x.unit}`).join(', ') || '-')}</td><td>${esc(RESULT_LABEL[v.result] || '')}</td><td style="text-align:center">${v.doneAt ? hm(v.doneAt) : ''}</td></tr>`; }).join('') : '<tr><td colspan="9" style="text-align:center;padding:20px">이날 기록이 없어요</td></tr>'}
+    ${list.length ? list.map((v, i) => { const s2 = v.snap || student(v.sid) || {}; return `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${hm(v.at)}</td><td style="text-align:center">${clsText(s2)}</td><td style="text-align:center">${esc(s2.name)}</td><td>${esc(whatText(v))}${v.obs ? `<div style="font-size:12px;margin-top:2px">관찰: ${esc(obsText(v.obs))}</div>` : ''}</td><td>${esc([careText(v), v.temp ? '체온 ' + v.temp + '℃' : '', (v.calls || []).map((c) => '보호자(' + c.rel + ') 통화 ' + hm(c.at)).join(', ')].filter(Boolean).join(', '))}</td><td>${esc(drugText(v) || '-')}</td><td>${esc(RESULT_LABEL[v.result] || '')}</td><td style="text-align:center">${v.doneAt ? hm(v.doneAt) : ''}</td></tr>`; }).join('') : '<tr><td colspan="9" style="text-align:center;padding:20px">이날 기록이 없어요</td></tr>'}
     </tbody></table>
     <div style="margin-top:14px;font-size:14px">총 ${list.length}건${RESULTS.filter(([id]) => res[id]).map(([id, l]) => ` · ${l} ${res[id]}`).join('')} · 투약 ${list.filter((v) => (v.drugs || []).length).length}건</div>
     <div class="between" style="margin-top:24px;font-size:12px;color:#444"><span>출력 ${kdate(now())} ${hm(now())} · 똑똑! 보건실 접수 도우미</span><span>1 / 1</span></div>
@@ -1065,7 +1083,7 @@ function yearBook(y, visits, roster, noPhone) {
   const perRows = [['학년', '반', '번호', '이름', '방문 횟수', '투약 횟수']].concat(Object.values(per).sort((a, b) => b.n - a.n).map((p) => [p.s.grade, p.s.cls, p.s.num, p.s.name, p.n, p.d]));
   const mat = Object.fromEntries(CATS.map((c) => [c, Array(12).fill(0)])); done.forEach((v) => { mat[catOf(v)][mIndex(v.at)]++; });
   const statRows = [['계통', ...MONTHS, '합계']].concat(CATS.map((c) => [c, ...mat[c], sum(mat[c])])).concat([['합계', ...MONTHS.map((_, i) => sum(CATS.map((c) => mat[c][i]))), done.length]]);
-  const drugRows = [['날짜', '시각', '학년', '반', '번호', '이름', '약', '양']]; done.forEach((v) => (v.drugs || []).forEach((d) => { const s = v.snap || {}; drugRows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, d.name, d.qty + d.unit]); }));
+  const drugRows = [['날짜', '시각', '학년', '반', '번호', '이름', '약', '양']]; done.forEach((v) => (v.drugs || []).forEach((d) => { const s = v.snap || {}; drugRows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, d.name, d.qty ? d.qty + (d.unit || '') : '']); }));
   const stockRows = [['약 이름', '종류', '남은 양', '단위', '유통기한(묶음별)', '보관 위치']].concat(S.drugs.map((d) => [d.name, d.kind, drugTotal(d), d.unit, d.lots.map((l) => kexp(l.exp) + ' ' + l.qty + d.unit).join(' / '), uniq(d.lots.map((l) => l.loc).filter(Boolean)).join(', ')]));
   const sheets = { '전체 이용 기록': rows, '학생별 방문 횟수': perRows, '월별·계통별 통계': statRows, '투약 기록': drugRows, '약 재고': stockRows };
   return sheets;
@@ -1206,6 +1224,9 @@ const A = {
   recall: () => { const v = S.call && S.visits.find((x) => x.id === S.call.vid); if (!v) return; S.call = { vid: v.id, at: now() }; save(); toast('다시 불렀어요'); },
   // 표에 학생 바로 추가
   addRow: (sid) => { const st = student(sid); if (!st) return; const v = { id: uid(), sid: st.id, snap: snap(st), at: now(), parts: [], sym: [], since: '', status: 'wait' }; startRow(v); S.visits.push(v); T.addQ = ''; T.pop = { vid: v.id, kind: 'sx', cat: SX_CATS[0] }; save(); render(); },
+  openAdd: () => { T.histPop = null; T.pop = T.pop && T.pop.kind === 'add' ? null : { kind: 'add', grade: null, cls: null }; render(); },
+  addGrade: (g) => { T.pop = { kind: 'add', grade: g ? Number(g) : null, cls: null }; render(); },
+  addCls: (c) => { T.pop.cls = Number(c); render(); },
   addFirst: () => { const c = addCandidates(document.getElementById('addIn')?.value || T.addQ)[0]; if (c) A.addRow(c.id); },
   // 고르는 창
   openPop: (a) => { const [vid, kind] = a.split('|'); if (T.pop && T.pop.vid === vid && T.pop.kind === kind) { T.pop = null; render(); return; } const v = S.visits.find((x) => x.id === vid); T.histPop = null; T.pop = { vid, kind, cat: (v && v.sx && v.sx[0] && v.sx[0].c) || SX_CATS[0] }; render(); setTimeout(() => document.getElementById('popIn')?.focus({ preventScroll: true }), 30); },
@@ -1224,29 +1245,22 @@ const A = {
   txDrug: (id) => {
     const v = S.visits.find((x) => x.id === T.pop.vid); const d = S.drugs.find((x) => x.id === id); if (!v || !d) return;
     v.drugs = v.drugs || []; const u = v.drugs.find((x) => x.id === id);
-    if (u) { drugRestore(d, u.qty, '기록에서 뺌 · ' + vNote(v)); v.drugs = v.drugs.filter((x) => x.id !== id); }
-    else { if (d.counted && drugTotal(d) < 1) toast(`${d.name} 재고가 없어요 · 기록은 남겨요`); drugUse(d, 1, vNote(v)); v.drugs.push({ id: d.id, name: d.name, qty: 1, unit: d.counted ? d.unit : '회' }); }
-    save(); render();
-  },
-  txDrugQ: (a) => {
-    const [id, dd] = a.split('|'); const v = S.visits.find((x) => x.id === T.pop.vid); const d = S.drugs.find((x) => x.id === id); if (!v || !d) return;
-    const u = (v.drugs || []).find((x) => x.id === id); if (!u) return;
-    if (Number(dd) > 0) { drugUse(d, 1, vNote(v)); u.qty++; } else if (u.qty > 1) { drugRestore(d, 1, '양 줄임 · ' + vNote(v)); u.qty--; }
+    if (u) v.drugs = v.drugs.filter((x) => x.id !== id);
+    else v.drugs.push({ id: d.id, name: d.name });
     save(); render();
   },
   txDel: (a) => {
     const [vid, kind, k] = a.split('|'); const v = S.visits.find((x) => x.id === vid); if (!v) return;
     if (kind === 'c') v.cares.splice(Number(k), 1);
     if (kind === 'u') v.custom.splice(Number(k), 1);
-    if (kind === 'd') { const u = (v.drugs || []).find((x) => x.id === k); const d = S.drugs.find((x) => x.id === k); if (u && d) drugRestore(d, u.qty, '기록에서 뺌 · ' + vNote(v)); v.drugs = (v.drugs || []).filter((x) => x.id !== k); }
+    if (kind === 'd') v.drugs = (v.drugs || []).filter((x) => x.id !== k);
     save(); render();
   },
   vOut: (vid) => { const v = S.visits.find((x) => x.id === vid); if (!v) return; v.doneAt = now(); save(); render(); },
   vDel: async (vid) => {
     const v = S.visits.find((x) => x.id === vid); if (!v) return;
-    const ok = await ask('이 기록을 지울까요?', `<b>${esc((v.snap || {}).name || '')}</b> 학생의 오늘 기록을 지워요. 쓴 약은 재고로 되돌려요.`, '지우기', true); if (!ok) return;
-    (v.drugs || []).forEach((u) => { const d = S.drugs.find((x) => x.id === u.id); if (d) drugRestore(d, u.qty, '기록 지움 · ' + vNote(v)); });
-    v.drugs = []; v.status = 'cancel'; if (T.pop && T.pop.vid === vid) T.pop = null; save(); render();
+    const ok = await ask('이 기록을 지울까요?', `<b>${esc((v.snap || {}).name || '')}</b> 학생의 오늘 기록을 지워요.`, '지우기', true); if (!ok) return;
+    v.status = 'cancel'; if (T.pop && T.pop.vid === vid) T.pop = null; save(); render();
   },
   histPop: (vid) => { T.pop = null; T.histPop = T.histPop === vid ? null : vid; render(); },
   histPopClose: () => { T.histPop = null; render(); },
