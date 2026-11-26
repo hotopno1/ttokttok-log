@@ -83,6 +83,39 @@ table.t td{padding:9px 8px;border-bottom:1px solid #EEF2F0;vertical-align:top}
 .body{position:relative;width:230px;height:525px}
 .part{position:absolute;border:0;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;background:#D5DDDA;color:#3F4A47}
 .part.on{background:var(--teal);color:#fff}
+/* 오늘 보건일지 표 */
+table.log{width:100%;min-width:1100px;border-collapse:collapse;font-size:15px}
+table.log th{background:var(--teal-s);color:var(--teal-d);font-weight:700;padding:9px 8px;border-bottom:2px solid #B9DAD4;text-align:left;white-space:nowrap}
+table.log td{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:middle}
+table.log td.c,table.log th.c{text-align:center}
+table.log tr.hl td{background:#F2FAF8}
+table.log tr.add td{background:#FAFBFB}
+table.log .cell{cursor:pointer;line-height:1.9}
+table.log .cell:hover{background:#F2FAF8}
+table.log .cell.on{outline:2px solid var(--teal);outline-offset:-2px;background:#F2FAF8}
+.cv{display:inline-flex;align-items:center;gap:2px;margin-right:10px;white-space:nowrap}
+.cv.drug{color:var(--or-d);font-weight:700}
+.cv .x{border:0;background:none;color:#D9534F;cursor:pointer;font-size:14px;padding:0 2px;line-height:1}
+.ph{color:#A3B0AC}
+.ico{border:0;background:none;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;padding:4px;border-radius:8px}
+.ico:hover{background:var(--bg);color:var(--ink)}
+.ico.del:hover{color:#D9534F}
+.tin{width:92px;height:34px;padding:0 6px;font-size:14px}
+.min{height:34px;font-size:14px;min-width:110px}
+.btn.sm{min-height:34px;padding:0 14px;font-size:14px;white-space:nowrap}
+.chip.sm{min-height:36px;padding:0 12px;font-size:14px}
+.pop{position:fixed;z-index:60;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:14px}
+.pop.sx{width:560px;max-width:calc(100vw - 24px)}
+.pop.tx{width:520px;max-width:calc(100vw - 24px);max-height:70vh;overflow:auto}
+.pop .cats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;align-content:start;width:270px;flex-shrink:0}
+.pop .cat{border:0;background:none;text-align:left;padding:6px 8px;border-radius:8px;cursor:pointer;font:inherit;font-size:14px;white-space:nowrap}
+.pop .cat:hover{background:var(--bg)}
+.pop .cat.on{background:var(--teal);color:#fff;font-weight:700}
+.pop .cat b{font-size:12px;color:var(--or-d)}
+.pop .cat.on b{color:#fff}
+.pop .checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;background:#fff;border-radius:10px;padding:8px 10px}
+.pop .ck{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;padding:3px 0}
+.pop .ck input{width:17px;height:17px;accent-color:var(--teal)}
 .call{min-height:100vh;background:var(--teal);color:#fff;display:flex;flex-direction:column;padding:36px 52px}
 /* 마우스 올렸을 때 */
 .btn,.chip,.kbtn,.knum,.part,.qcard,.nav a,.link,.stepper button,.k-foot button,.card,.tag,table.t tbody tr td{transition:background-color .12s,border-color .12s,color .12s,box-shadow .12s,transform .12s}
@@ -135,7 +168,7 @@ table.t td{padding:9px 8px;border-bottom:1px solid #EEF2F0;vertical-align:top}
 <div id="overlay"></div>
 <script>
 'use strict';
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 // 만든 사람 (공동 작업) — 이어 만드는 선생님 이름을 이 목록에 더하면 첫 화면·설정 아래에 함께 보여요
 const CREDITS = ['음악적체육인'];
 const creditText = () => '만든 사람 ' + CREDITS.join(' · ');
@@ -193,7 +226,8 @@ const PARTS_B = [
 const PART_LABEL = Object.fromEntries([...PARTS_F, ...PARTS_B].map((p) => [p[0], p[1]]));
 const partShort = (label) => label.replace(/\(뒤\)/, '').replace(/^(오른|왼)/, '').replace('뒤통수', '머리').replace('목 뒤', '목').replace('손등', '손');
 const partGroup = (id) => id === 'f-head' ? 'face' : id === 'b-head' ? 'headBack' : id.includes('neck') ? 'neck' : id === 'f-chest' ? 'chest' : id === 'f-belly' ? 'belly' : (id === 'b-back' || id === 'b-waist') ? 'back' : id === 'b-hip' ? 'hip' : (id.includes('hand') || id.includes('foot')) ? 'handFoot' : 'limb';
-const CATS = ['근골격계', '피부·외상', '소화기계', '호흡기계', '신경계', '눈·귀·코', '비뇨생식기계', '구강', '순환기계', '기타'];
+const catOf = (v) => (v.sx && v.sx[0]) ? (SX_CATS.includes(v.sx[0].c) ? v.sx[0].c : '기타') : (OLDCAT[S.symCat[(v.sym || [])[0]]] || '기타');
+const symLabels = (v) => (v.sx && v.sx.length) ? v.sx.map((x) => [x.t, x.c]) : (v.sym || []).map((s) => [SYM_SHORT[s] || s, OLDCAT[S.symCat[s]] || '기타']);
 const DEFAULT_SYMCAT = { bruise: '근골격계', sprain: '근골격계', muscle: '근골격계', cut: '피부·외상', bug: '피부·외상', burn: '피부·외상', stomach: '소화기계', nausea: '소화기계', diarrhea: '소화기계', fever: '호흡기계', cough: '호흡기계', throat: '호흡기계', breath: '호흡기계', head: '신경계', dizzy: '신경계', nose: '눈·귀·코', eye: '눈·귀·코', period: '비뇨생식기계', tooth: '구강', heart: '순환기계', etc: '기타' };
 const DEFAULT_CARE = {
   bruise: ['냉찜질(아이싱)', '파스 붙이기', '압박붕대', '올리고 안정', '관찰'], sprain: ['냉찜질(아이싱)', '압박붕대', '부목 고정', '안정', '관찰'], muscle: ['찜질', '스트레칭 안내', '파스 붙이기'],
@@ -203,18 +237,32 @@ const DEFAULT_CARE = {
   breath: ['안정', '보호자 연락', '응급 연락'], heart: ['안정', '맥박 측정'], stomach: ['찜질팩', '화장실 안내', '침대 안정'], nausea: ['침대 안정', '물 마시기'],
   diarrhea: ['화장실 안내', '수분 섭취 안내'], period: ['찜질팩', '침대 안정'], etc: ['관찰']
 };
-// 선생님 관찰: 부위별로 고를 수 있는 진단 (학교에 맞게 고쳐 써도 돼요)
-const DX_BY_GROUP = {
-  face: ['두통', '발열', '어지러움', '코피(비출혈)', '눈 충혈·결막염', '눈 이물', '치통', '구내염', '안면 타박상', '찰과상', '열상(찢어짐)', '벌레 물림'],
-  headBack: ['두통', '두부 타박상', '찰과상', '열상(찢어짐)', '뇌진탕 의심'],
-  neck: ['인후통', '감기(상기도 감염)', '편도염 의심', '목 근육통', '목 염좌', '타박상'],
-  chest: ['기침', '호흡곤란', '천식 증상', '흉통', '두근거림(심계항진)', '과호흡', '타박상'],
-  belly: ['복통', '소화불량', '위염 증상', '장염 의심', '설사', '구토·메스꺼움', '변비', '생리통', '타박상'],
-  back: ['요통', '근육통', '염좌', '타박상', '찰과상'],
-  hip: ['타박상', '근육통', '꼬리뼈 통증', '찰과상'],
-  limb: ['찰과상', '타박상', '염좌', '열상(찢어짐)', '화상', '근육통·쥐남', '골절 의심', '벌레 물림', '피부 발진'],
-  handFoot: ['찰과상', '타박상', '염좌', '열상(찢어짐)', '화상', '손발톱 손상', '물집', '골절 의심', '벌레 물림']
+// 증상 계통과 세부 증상 (설정에서 고칠 수 있어요)
+const SX_CATS = ['외상', '두통', '호흡기', '소화기', '피부과', '안과', '근골격계', '이비인후', '비뇨생식', '구강치아', '순환기계', '신경계', '감염병', '내분비', '정신건강', '기타'];
+const SX_DEFAULT = {
+  '외상': ['찰과상', '열상', '화상', '동상', '자상', '절상', '피부출혈', '외상'],
+  '두통': ['두통', '편두통', '긴장성 두통'],
+  '호흡기': ['기침', '감기', '가래', '호흡곤란', '천식', '과호흡'],
+  '소화기': ['복통', '오심', '소화장애', '구토', '설사', '속쓰림', '식체', '울렁거림', '상복부통증', '소화불량', '변비'],
+  '피부과': ['두드러기', '가려움', '피부 발진', '벌레 물림', '접촉성 피부염', '물집', '여드름', '사마귀'],
+  '안과': ['눈 충혈', '눈 이물', '눈 가려움', '눈 통증', '다래끼', '결막염'],
+  '근골격계': ['타박상', '염좌', '근육통', '관절통', '요통', '경련(쥐남)', '골절 의심', '탈구 의심'],
+  '이비인후': ['코피', '콧물', '코막힘', '인후통', '귀 통증', '귀 이물', '비염'],
+  '비뇨생식': ['생리통', '생리 불순', '배뇨통', '빈뇨'],
+  '구강치아': ['치통', '구내염', '잇몸 출혈', '치아 외상', '입술 상처'],
+  '순환기계': ['두근거림', '흉통', '빈혈 증상', '실신'],
+  '신경계': ['어지러움', '실신', '경련', '손발 저림', '뇌진탕 의심'],
+  '감염병': ['발열', '독감 의심', '코로나19 의심', '수두 의심', '수족구 의심', '장염 의심', '유행성 결막염 의심'],
+  '내분비': ['저혈당 증상', '당뇨 관리', '갑상선 관련'],
+  '정신건강': ['불안', '스트레스', '우울감', '수면 부족', '상담 필요'],
+  '기타': ['피로', '무기력', '생리대 요청', '휴식 요청', '기타']
 };
+// 학생 화면에서 고른 증상 → 선생님 표의 계통·증상
+const SYM2SX = { head: ['두통', '두통'], fever: ['감염병', '발열'], dizzy: ['신경계', '어지러움'], nose: ['이비인후', '코피'], eye: ['안과', '눈 통증'], tooth: ['구강치아', '치통'], throat: ['이비인후', '인후통'], cough: ['호흡기', '기침'], breath: ['호흡기', '호흡곤란'], heart: ['순환기계', '두근거림'], stomach: ['소화기', '복통'], nausea: ['소화기', '오심'], diarrhea: ['소화기', '설사'], period: ['비뇨생식', '생리통'], bruise: ['근골격계', '타박상'], cut: ['외상', '찰과상'], sprain: ['근골격계', '염좌'], muscle: ['근골격계', '근육통'], bug: ['피부과', '벌레 물림'], burn: ['외상', '화상'], etc: ['기타', '기타'] };
+// 예전 판 통계 계통 → 새 계통
+const OLDCAT = { '근골격계': '근골격계', '피부·외상': '외상', '소화기계': '소화기', '호흡기계': '호흡기', '신경계': '신경계', '눈·귀·코': '이비인후', '비뇨생식기계': '비뇨생식', '구강': '구강치아', '순환기계': '순환기계', '기타': '기타' };
+const CARE_QUICK_DEFAULT = ['냉찜질', '온찜질', '드레싱', '소독', '침상안정', '보건지도', '건강상담', 'V/S 측정', '체온 측정', '통증척도 확인', '담임 연락', '보호자 연락', '병원 이송'];
+const CATS = SX_CATS;
 const COMMON_CARE = ['체온 측정', '침대 안정', '담임 연락', '보호자 연락'];
 const RESULTS = [['back', '교실 복귀'], ['restback', '안정 후 복귀'], ['early', '조퇴(보호자 인계)'], ['hospital', '병원 진료 권고'], ['transfer', '병원 이송']];
 const RESULT_LABEL = Object.fromEntries(RESULTS);
@@ -238,7 +286,7 @@ const DEFAULT_DRUGS = () => [
 const newCode = () => String(Math.floor(100000 + Math.random() * 900000));
 const blankState = () => ({
   v: 1, school: { name: '', year: schoolYear(now()), code: newCode() }, roster: [], visits: [], drugs: DEFAULT_DRUGS(), stockLog: [],
-  careCustom: {}, symCat: { ...DEFAULT_SYMCAT }, periods: DEFAULT_PERIODS.map((p) => ({ ...p })), schedule: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+  careCustom: {}, symCat: { ...DEFAULT_SYMCAT }, sxList: JSON.parse(JSON.stringify(SX_DEFAULT)), careQuick: CARE_QUICK_DEFAULT.slice(), periods: DEFAULT_PERIODS.map((p) => ({ ...p })), schedule: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
   override: { place: 'auto', until: '' }, settings: { maskName: false, chime: true, warnDays: 60, pin: '', purMap: null }, archives: [], call: null
 });
 
@@ -305,7 +353,7 @@ function linkedVisits(st) {
   }
   return list.sort((a, b) => b.at - a.at);
 }
-const whatText = (v) => [(v.parts || []).map((p) => PART_LABEL[p] || p).join(', '), (v.sym || []).map((s) => SYM_SHORT[s] || s).join(', ')].filter(Boolean).join(' · ');
+const whatText = (v) => (v.sx && v.sx.length) ? v.sx.map((x) => x.t).join(', ') : [(v.parts || []).map((p) => PART_LABEL[p] || p).join(', '), (v.sym || []).map((s) => SYM_SHORT[s] || s).join(', ')].filter(Boolean).join(' · ');
 const careText = (v) => [...(v.cares || []), ...(v.custom || [])].join(', ');
 const drugText = (v) => (v.drugs || []).map((d) => `${d.name} ${d.qty}${d.unit}`).join(', ');
 
@@ -377,6 +425,7 @@ function render() {
   afterRender(r);
 }
 function afterRender(r) {
+  if (r === 'teacher') placePop();
   if (r === 'kiosk' && S.call && S.call.at !== K.chimed && now() - S.call.at < 15000) { K.chimed = S.call.at; chime(); }
 }
 setInterval(() => {
@@ -388,7 +437,7 @@ setInterval(() => {
     const sig = [hm(now()), pr.away, pr.where, c ? c.v.id + ':' + Math.ceil((15000 - (now() - S.call.at)) / 1000) : '', queue().length].join('|');
     if (sig !== K.sig) { K.sig = sig; changed = true; }
     if (changed && !document.querySelector('.modalbg')) render();
-  } else if (r === 'teacher' && !document.activeElement?.matches('input,textarea,select')) {
+  } else if (r === 'teacher' && !T.pop && !document.activeElement?.matches('input,textarea,select')) {
     const qcount = queue().length; if (qcount !== T._q) { T._q = qcount; render(); }
   }
 }, 3000);
@@ -577,84 +626,127 @@ function topbar(active) {
   </div></div></header>`;
 }
 
-/* ---------- 선생님: 오늘 접수 ---------- */
-function curVisit() {
-  let v = T.cur && S.visits.find((x) => x.id === T.cur && (x.status === 'wait' || x.status === 'called'));
-  if (!v) { v = queue().find((x) => x.status === 'called'); T.cur = v ? v.id : null; }
-  return v || null;
-}
-function form(v) {
-  if (!T.f[v.id]) T.f[v.id] = { cares: {}, drugs: {}, custom: [], draft: '', saveFav: false, temp: '', memo: '', result: 'back', calls: {} };
-  const f = T.f[v.id];
-  if (!f.obs) f.obs = { step: 'body', parts: Object.fromEntries((v.parts || []).map((p) => [p, true])), dx: {} };
-  if (f.obsNote === undefined) f.obsNote = '';
-  return f;
-}
+/* ---------- 선생님: 오늘 접수 (표로 이어서 기록) ---------- */
 // 학생이 접수할 때 말한 것 (주호소)
 const ccText = (v) => [(v.parts || []).map((p) => PART_LABEL[p] || p).join(', '), (v.sym || []).map((s) => SYM[s] || s).join(', '), (SINCE.find((x) => x[0] === v.since) || [])[1] || ''].filter(Boolean).join(' · ');
-// 선생님 관찰을 저장할 모양으로
-function obsOf(f) {
-  const o = f.obs || {}; const parts = Object.keys(o.parts || {}).filter((p) => o.parts[p]);
-  const dx = Object.keys(o.dx || {}).filter((k) => o.dx[k]).map((k) => { const i = k.indexOf('|'); return { p: k.slice(0, i), d: k.slice(i + 1) }; }).filter((x) => parts.includes(x.p));
-  const note = (f.obsNote || '').trim();
-  if (!dx.length && !note) return null;
-  return { parts, dx, note };
-}
-// 관찰 내용을 글로: '왼다리 찰과상, 타박상 · 얼굴 코피(비출혈)'
+// 예전 판의 선생님 관찰 기록을 글로 (남아 있는 기록 보여 주기용)
 function obsText(o, withNote = true) {
   if (!o) return '';
   const by = {}; (o.dx || []).forEach((x) => { (by[x.p] = by[x.p] || []).push(x.d); });
   const dxs = (o.parts || []).filter((p) => by[p]).map((p) => `${PART_LABEL[p] || p} ${by[p].join(', ')}`).join(' · ');
   return [dxs, withNote && o.note ? o.note : ''].filter(Boolean).join(' / ');
 }
-function obsBox(v, f) {
-  const o = f.obs; const picked = Object.keys(o.parts).filter((p) => o.parts[p]);
-  const stepTag = (n, l, on) => `<span class="tag ${on ? 't' : ''}" style="${on ? 'font-weight:700' : ''}">${n} ${l}</span>`;
-  const head = `<div class="between"><h2 style="font-size:18px">선생님 관찰 <span class="muted small" style="font-weight:400">학생 상태를 보고 부위와 진단을 적어요</span></h2><div class="row" style="gap:6px">${stepTag(1, '부위', o.step === 'body')}${stepTag(2, '진단·기록', o.step === 'dx')}</div></div>`;
-  if (o.step === 'body') {
-    const k = 0.78; const box = `position:relative;width:${Math.round(200 * k)}px;height:${Math.round(456 * k)}px`;
-    return `<div class="stack" style="gap:12px;border:2px solid var(--teal-s);border-radius:14px;padding:16px">${head}
-      <div class="small muted">관찰한 부위를 눌러 주세요. 여러 곳 골라도 돼요.${(v.parts || []).length ? ' 학생이 고른 부위가 먼저 표시돼 있어요.' : ''}</div>
-      <div style="display:flex;justify-content:center;gap:28px;flex-wrap:wrap">
-        <div class="stack" style="align-items:center;gap:6px"><b class="muted small">앞</b><div style="${box}">${bodyMap(PARTS_F, o.parts, 'oPart', k)}</div></div>
-        <div aria-hidden="true" style="border-left:2px dashed #C7D2CE;margin:4px 0"></div>
-        <div class="stack" style="align-items:center;gap:6px"><b class="muted small">뒤</b><div style="${box}">${bodyMap(PARTS_B, o.parts, 'oPart', k)}</div></div>
-      </div>
-      <div class="between" style="align-items:center"><div class="small">${picked.length ? '<b>고른 부위</b> · ' + esc(picked.map((p) => PART_LABEL[p]).join(', ')) : '<span class="muted">아직 고른 부위가 없어요</span>'}</div>
-      <button class="btn" data-act="oNext" ${picked.length ? '' : 'disabled'}>부위 선택 완료 → 진단 고르기</button></div>
-    </div>`;
-  }
-  const groups = picked.map((p) => {
-    const list = DX_BY_GROUP[partGroup(p)] || [];
-    return `<div class="stack" style="gap:8px"><div class="small b">${esc(PART_LABEL[p])}</div><div class="chips">${list.map((d) => { const key = p + '|' + d; return `<button class="chip ${o.dx[key] ? 'on' : ''}" aria-pressed="${!!o.dx[key]}" data-act="oDx" data-arg="${esc(key)}">${esc(d)}</button>`; }).join('')}</div></div>`;
-  }).join('');
-  return `<div class="stack" style="gap:14px;border:2px solid var(--teal-s);border-radius:14px;padding:16px">${head}
-    <div class="row" style="gap:8px"><span class="small b muted">고른 부위</span>${picked.map((p) => `<span class="tag t">${esc(PART_LABEL[p])}</span>`).join('')}<button class="link small" data-act="oBack">← 부위 다시 고르기</button></div>
-    <div class="small muted" style="margin-bottom:-4px">부위마다 맞는 진단을 골라요. 여러 개 골라도 돼요.</div>
-    ${groups}
-    <label class="f">서술 기록 <span class="xs" style="font-weight:400">관찰한 상태를 자세히 적어요 (상처 크기·모양, 통증 정도, 활력징후, 경과 등)</span>
-      <textarea id="tObsNote" rows="3" data-bind="obsNote" placeholder="예: 왼쪽 정강이 2cm 찰과상, 출혈 멎음. 부종 없고 걸을 때 통증 약함.">${esc(f.obsNote)}</textarea></label>
-  </div>`;
+const tableVisits = () => todayVisits().filter((v) => v.status === 'done').sort((a, b) => (a.calledAt || a.at) - (b.calledAt || b.at));
+const sxList = () => S.sxList || SX_DEFAULT;
+const careQuick = () => S.careQuick || CARE_QUICK_DEFAULT;
+function addCandidates(q) {
+  q = (q || '').trim(); if (!q) return [];
+  const m = q.match(/^(\d+)\D+(\d+)(?:\D+(\d+))?$/);
+  return S.roster.filter((s) => m ? (s.grade === Number(m[1]) && s.cls === Number(m[2]) && (!m[3] || s.num === Number(m[3]))) : s.name.includes(q))
+    .sort((a, b) => a.grade - b.grade || a.cls - b.cls || a.num - b.num).slice(0, 8);
 }
 function vTeacher() {
-  const q = queue(); const v = curVisit(); const done = todayVisits().filter((x) => x.status === 'done').sort((a, b) => b.at - a.at);
-  const st = v ? (student(v.sid) || v.snap) : null;
-  return topbar('teacher') + `<main class="wrap"><div class="cols">
-  <aside class="c-q stack">
-    <button class="btn big" data-act="callNext" ${q.some((x) => x.status === 'wait') ? '' : 'disabled'}>다음 학생 입장</button>
-    <div class="between small"><span class="muted">누르면 학생 화면에서 이름을 불러요</span>${v ? '<button class="link" data-act="recall">다시 부르기</button>' : ''}</div>
-    <h2 style="font-size:17px">대기 ${q.filter((x) => x.status === 'wait').length}명</h2>
-    ${q.length ? q.map((x, i) => { const s2 = student(x.sid) || x.snap || {}; return `<button class="qcard ${v && v.id === x.id ? 'cur' : ''}" title="${esc(whatText(x))} · 눌러서 처치 화면 열기" data-act="pickVisit" data-arg="${x.id}"><div class="between"><b style="font-size:18px">${esc(s2.name)} <span class="small muted" style="font-weight:400">${clsText(s2)}</span></b><b class="xs" style="color:${x.status === 'called' ? 'var(--teal)' : 'var(--muted)'}">${x.status === 'called' ? '처치 중' : '대기'}</b></div><div class="xs muted">접수 ${hm(x.at)} · ${Math.max(0, Math.round((now() - x.at) / 60000))}분째</div><div class="chips" style="gap:6px">${(x.parts || []).map((p) => `<span class="tag">${esc(PART_LABEL[p])}</span>`).join('')}${(x.sym || []).map((s) => `<span class="tag">${esc(SYM_SHORT[s])}</span>`).join('')}</div></button>`; }).join('') : '<div class="muted small">기다리는 학생이 없어요</div>'}
-    <button class="btn ghost" data-act="walkOpen">+ 직접 접수</button>
-    ${T.walk ? walkForm() : ''}
+  const q = queue().filter((x) => x.status === 'wait'); const rows = tableVisits();
+  const last = S.call && S.visits.find((x) => x.id === S.call.vid);
+  const cands = addCandidates(T.addQ);
+  const xbtn = (act, arg, label) => `<button class="x" aria-label="${esc(label)} 지우기" data-act="${act}" data-arg="${esc(arg)}">×</button>`;
+  const rowHtml = (v, i) => {
+    const s2 = student(v.sid) || v.snap || {}; const cc = ccText(v);
+    const sx = (v.sx || []).map((x, j) => `<span class="cv">${esc(x.t)}${xbtn('sxDel', v.id + '|' + j, x.t)}</span>`).join('');
+    const tx = [...(v.cares || []).map((c, j) => `<span class="cv">${esc(c)}${xbtn('txDel', v.id + '|c|' + j, c)}</span>`), ...(v.custom || []).map((c, j) => `<span class="cv">${esc(c)}${xbtn('txDel', v.id + '|u|' + j, c)}</span>`), ...(v.drugs || []).map((d) => `<span class="cv drug">${esc(d.name)} ${d.qty}${esc(d.unit)}${xbtn('txDel', v.id + '|d|' + d.id, d.name)}</span>`)].join('');
+    const open = T.pop && T.pop.vid === v.id;
+    return `<tr class="${open ? 'hl' : ''}">
+      <td class="c">${i + 1}</td>
+      <td class="c">${s2.grade}-${s2.cls}${s2.num ? '-' + s2.num : ''}</td>
+      <td><div style="min-width:150px"><b style="white-space:nowrap">${esc(s2.name)}</b>${cc ? `<div class="xs" style="color:var(--or-d);line-height:1.4" title="학생이 접수할 때 고른 내용">주호소 · ${esc(cc)}</div>` : ''}</div></td>
+      <td class="c"><button class="ico" aria-label="${esc(s2.name)} 지난 기록" data-tip="지난 기록" data-act="histPop" data-arg="${v.id}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></button></td>
+      <td class="cell ${open && T.pop.kind === 'sx' ? 'on' : ''}" data-cell="${v.id}|sx" data-act="openPop" data-arg="${v.id}|sx">${sx || '<span class="ph">증상 고르기</span>'}</td>
+      <td class="cell ${open && T.pop.kind === 'tx' ? 'on' : ''}" data-cell="${v.id}|tx" data-act="openPop" data-arg="${v.id}|tx">${tx || '<span class="ph">처치·처방 고르기</span>'}</td>
+      <td class="c"><input class="tin" type="time" value="${hm(v.calledAt || v.at)}" aria-label="입실 시각" data-act-change="vTime" data-arg="${v.id}|in"></td>
+      <td class="c">${v.doneAt ? `<input class="tin" type="time" value="${hm(v.doneAt)}" aria-label="퇴실 시각" data-act-change="vTime" data-arg="${v.id}|out">` : `<button class="btn line sm" data-act="vOut" data-arg="${v.id}">퇴실</button>`}</td>
+      <td><input class="min" id="memo-${v.id}" type="text" value="${esc(v.memo || '')}" placeholder="메모" data-vmemo="${v.id}"></td>
+      <td class="c"><button class="ico del" aria-label="${esc(s2.name)} 기록 지우기" data-tip="기록 지우기" data-act="vDel" data-arg="${v.id}">×</button></td>
+    </tr>`;
+  };
+  return topbar('teacher') + `<main class="wrap" style="max-width:1600px"><div class="cols" style="align-items:flex-start">
+  <aside class="stack" style="flex:0 0 250px">
+    <button class="btn big" data-act="callNext" ${q.length ? '' : 'disabled'}>다음 학생 입장</button>
+    <div class="between small"><span class="muted">누르면 학생 화면에서 이름을 불러요</span>${last ? '<button class="link" data-act="recall">다시 부르기</button>' : ''}</div>
+    <h2 style="font-size:17px">대기 ${q.length}명</h2>
+    ${q.length ? q.map((x) => { const s2 = student(x.sid) || x.snap || {}; return `<button class="qcard" title="눌러서 이 학생 부르기" data-act="callThis" data-arg="${x.id}"><div class="between"><b style="font-size:18px">${esc(s2.name)} <span class="small muted" style="font-weight:400">${clsText(s2)}</span></b><b class="xs muted">대기</b></div><div class="xs muted">접수 ${hm(x.at)} · ${Math.max(0, Math.round((now() - x.at) / 60000))}분째</div><div class="chips" style="gap:6px">${(x.parts || []).map((p) => `<span class="tag">${esc(PART_LABEL[p])}</span>`).join('')}${(x.sym || []).map((s) => `<span class="tag">${esc(SYM_SHORT[s])}</span>`).join('')}</div></button>`; }).join('') : '<div class="muted small">기다리는 학생이 없어요</div>'}
   </aside>
-  <section class="c-w stack">${v ? treatForm(v, st) : `<div class="card"><h2 style="font-size:20px">처치할 학생을 기다리는 중</h2><p class="muted" style="margin:6px 0 0">'다음 학생 입장'을 누르거나 대기 카드를 누르면 여기에서 처치를 적어요.</p></div>`}
-    <div class="card stack"><div class="between"><h2 style="font-size:18px">오늘 기록 ${done.length}건</h2><a class="btn line" href="#print">기록부 출력</a></div>
-    ${done.length ? `<div class="scroll"><table class="t" style="min-width:680px"><thead><tr><th>접수</th><th>학생</th><th>부위·증상</th><th>처치·투약</th><th>조치</th><th></th></tr></thead><tbody>${done.map((x) => { const s2 = student(x.sid) || x.snap || {}; return `<tr><td>${hm(x.at)}</td><td><button class="link" data-act="openHist" data-arg="${x.sid}">${clsText(s2)} ${esc(s2.name)}</button></td><td>${esc(whatText(x))}${x.obs ? `<div class="xs" style="color:var(--teal-d)">관찰 · ${esc(obsText(x.obs))}</div>` : ''}</td><td>${esc([careText(x), drugText(x)].filter(Boolean).join(', '))}</td><td>${esc(RESULT_LABEL[x.result] || '')}</td><td><button class="link" data-act="reopen" data-arg="${x.id}">고치기</button></td></tr>`; }).join('')}</tbody></table></div>` : '<div class="muted small">아직 처치를 마친 학생이 없어요</div>'}
-    </div>
+  <section class="card stack" style="flex:1 1 900px;min-width:0;padding:18px 20px">
+    <div class="between"><h2 style="font-size:19px">오늘 보건일지 <span class="muted small" style="font-weight:400">${kdate(now())} · ${rows.length}명</span></h2><a class="btn line" href="#print">기록부 출력</a></div>
+    <div class="xs muted">증상·처치 칸을 누르면 고르는 창이 열려요. 고른 내용은 바로 저장돼요.</div>
+    <div class="scroll"><table class="log">
+      <thead><tr><th style="width:40px">No</th><th style="width:74px">학년/반</th><th style="width:150px">이름</th><th style="width:46px">이력</th><th style="min-width:170px">증상</th><th style="min-width:220px">처치 및 처방</th><th style="width:96px">입실</th><th style="width:96px">퇴실</th><th style="min-width:120px">메모</th><th style="width:40px"></th></tr></thead>
+      <tbody>${rows.map(rowHtml).join('')}
+      <tr class="add"><td class="c">${rows.length + 1}</td><td colspan="9">
+        <div class="row" style="flex-wrap:nowrap;gap:8px"><input id="addIn" type="text" style="max-width:320px" placeholder="학생 추가 · 이름 또는 1-2-13 적기" value="${esc(T.addQ || '')}" data-bind-root="addQ" data-live="1" data-enter="addFirst">${cands.length ? '<span class="xs muted">눌러서 추가</span>' : (T.addQ ? '<span class="xs muted">찾는 학생이 없어요</span>' : '<span class="xs muted">대기 목록에 없는 학생을 바로 적을 때 써요</span>')}</div>
+        ${cands.length ? `<div class="chips" style="margin-top:8px">${cands.map((s) => `<button class="chip" data-act="addRow" data-arg="${s.id}">${clsText(s)} ${esc(s.name)}</button>`).join('')}</div>` : ''}
+      </td></tr></tbody></table></div>
   </section>
-  ${v ? `<aside class="c-h">${histPanel(st, v)}</aside>` : ''}
-  </div></main>`;
+  </div></main>${T.pop ? popHtml() : ''}${T.histPop ? histPopHtml() : ''}`;
+}
+function popHtml() {
+  const v = S.visits.find((x) => x.id === T.pop.vid); if (!v) return '';
+  const s2 = student(v.sid) || v.snap || {};
+  const head = `<div class="between" style="margin-bottom:8px"><b>${esc(s2.name)} · ${T.pop.kind === 'sx' ? '증상' : '처치 및 처방'}</b><button class="ico" aria-label="닫기" data-act="popClose">×</button></div>`;
+  if (T.pop.kind === 'sx') {
+    const list = sxList(); const cat = T.pop.cat && list[T.pop.cat] ? T.pop.cat : SX_CATS[0];
+    const has = (c, t) => (v.sx || []).some((x) => x.c === c && x.t === t);
+    const nIn = (c) => (v.sx || []).filter((x) => x.c === c).length;
+    return `<div id="pop" class="pop sx">${head}<div style="display:flex;gap:12px">
+      <div class="cats">${SX_CATS.map((c) => `<button class="cat ${c === cat ? 'on' : ''}" data-act="popCat" data-arg="${esc(c)}">${esc(c)}${nIn(c) ? ` <b>${nIn(c)}</b>` : ''}</button>`).join('')}</div>
+      <div class="stack" style="flex:1;min-width:0;gap:8px;background:var(--teal-s);border-radius:12px;padding:10px">
+        <input id="popIn" type="text" placeholder="직접 입력 후 Enter" data-enter="popAdd">
+        <div class="checks">${(list[cat] || []).map((t) => `<label class="ck"><input type="checkbox" ${has(cat, t) ? 'checked' : ''} data-act="sxToggle" data-arg="${esc(cat + '|' + t)}"> ${esc(t)}</label>`).join('') || '<div class="xs muted">이 계통에 증상이 없어요 · 설정에서 더할 수 있어요</div>'}</div>
+        <button class="btn sm" style="align-self:flex-start" data-act="popClose">선택 완료</button>
+      </div></div></div>`;
+  }
+  const quick = careQuick(); const onC = new Set(v.cares || []);
+  const used = (v.drugs || []);
+  return `<div id="pop" class="pop tx">${head}
+    <input id="popIn" type="text" placeholder="직접 입력 후 Enter" data-enter="popAdd" style="margin-bottom:10px">
+    <div class="xs b muted" style="margin-bottom:6px">자주 쓰는 처치</div>
+    <div class="chips" style="gap:6px">${quick.map((c) => `<button class="chip sm ${onC.has(c) ? 'on' : ''}" aria-pressed="${onC.has(c)}" data-act="txCare" data-arg="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    ${used.length ? `<div class="xs b muted" style="margin:12px 0 6px">쓴 약 <span style="font-weight:400">재고에서 바로 빠져요</span></div><div class="stack" style="gap:6px">${used.map((u) => `<div class="between" style="align-items:center;background:var(--or-s);border-radius:10px;padding:4px 6px 4px 12px"><b class="small">${esc(u.name)}</b><div class="stepper"><button aria-label="${esc(u.name)} 하나 줄이기" data-act="txDrugQ" data-arg="${u.id}|-1">−</button><b style="min-width:52px;text-align:center">${u.qty}${esc(u.unit)}</b><button aria-label="${esc(u.name)} 하나 늘리기" data-act="txDrugQ" data-arg="${u.id}|1">+</button></div></div>`).join('')}</div>` : ''}
+    <div class="xs b muted" style="margin:12px 0 6px">약</div>
+    <div class="chips drugs" style="gap:6px">${S.drugs.map((d) => { const on = used.some((u) => u.id === d.id); return `<button class="chip sm drug ${on ? 'on' : ''}" aria-pressed="${on}" data-act="txDrug" data-arg="${d.id}">${esc(d.name)}<small>${d.counted ? `재고 ${drugTotal(d)}${esc(d.unit)}` : '횟수만'}</small></button>`; }).join('') || '<span class="xs muted">약품·재고에서 약을 더해 주세요</span>'}</div>
+    <button class="btn sm" style="margin-top:12px" data-act="popClose">선택 완료</button></div>`;
+}
+function histPopHtml() {
+  const v = S.visits.find((x) => x.id === T.histPop); if (!v) return '';
+  const st = student(v.sid) || v.snap || {};
+  return `<div id="histPop" class="pop" style="position:fixed;right:20px;top:90px;width:380px;max-height:75vh;overflow:auto"><div class="between" style="margin-bottom:6px"><b>지난 기록</b><button class="ico" aria-label="닫기" data-act="histPopClose">×</button></div>${histPanel(st, v)}</div>`;
+}
+function placePop() {
+  const p = document.getElementById('pop'); if (!p || !T.pop) return;
+  const cell = document.querySelector(`[data-cell="${T.pop.vid}|${T.pop.kind}"]`); if (!cell) return;
+  const r = cell.getBoundingClientRect(); const w = p.offsetWidth, h = p.offsetHeight;
+  let left = Math.min(r.left, window.innerWidth - w - 12); left = Math.max(12, left);
+  let top = r.bottom + 6; if (top + h > window.innerHeight - 8 && r.top - h - 6 > 8) top = r.top - h - 6;
+  p.style.left = left + 'px'; p.style.top = Math.max(8, top) + 'px';
+}
+window.addEventListener('resize', placePop);
+window.addEventListener('scroll', placePop, true);
+document.addEventListener('click', (e) => {
+  if (!T.pop && !T.histPop) return;
+  if (e.target.closest('#pop,#histPop,[data-act="openPop"],[data-act="histPop"],.modalbg')) return;
+  T.pop = null; T.histPop = null; render();
+});
+function drugRestore(d, qty, note) {
+  if (d.counted) d.lots.push({ id: uid(), exp: d.lots.map((l) => l.exp).sort()[0] || ymd(now() + 365 * 86400000), qty, loc: '' });
+  S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: d.counted ? qty : 0, qtyText: d.counted ? qty + d.unit : '사용 취소 ' + qty + '회', note });
+}
+function drugUse(d, qty, note) {
+  if (d.counted) deduct(d, qty, note); else S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: -0, qtyText: '사용 ' + qty + '회', note });
+}
+const vNote = (v) => `처치 · ${clsText(v.snap)} ${(v.snap || {}).name}`;
+function startRow(v) {
+  // 대기 학생을 표로 옮겨요: 학생이 고른 증상을 미리 넣어 둬요
+  v.status = 'done'; v.calledAt = now(); v.result = v.result || '';
+  if (!v.sx) v.sx = uniq((v.sym || []).map((s) => SYM2SX[s]).filter(Boolean).map((x) => x.join('|'))).map((k) => { const [c, t] = k.split('|'); return { c, t }; });
 }
 function walkForm() {
   const w = T.walk; const grades = uniq(S.roster.map((s) => s.grade)).sort((a, b) => a - b);
@@ -666,52 +758,8 @@ function walkForm() {
   <select id="wY" data-act-change="walkSet" data-arg="sym"><option value="">증상</option>${Object.keys(SYM).map((s) => `<option ${w.sym === s ? 'selected' : ''} value="${s}">${SYM[s]}</option>`).join('')}</select>
   <div class="row"><button class="btn" data-act="walkAdd">접수하고 처치하기</button><button class="link" data-act="walkClose">닫기</button></div></div>`;
 }
-function treatForm(v, st) {
-  const f = form(v);
-  const chipCare = (label) => `<button class="chip ${f.cares[label] ? 'on' : ''}" aria-pressed="${!!f.cares[label]}" data-act="tCare" data-arg="${esc(label)}">${esc(label)}</button>`;
-  const chipDrug = (d) => { const tot = drugTotal(d); const first = d.lots.slice().sort((a, b) => a.exp.localeCompare(b.exp))[0]; const tip = first ? `먼저 쓸 묶음 ${kexp(first.exp)}까지${first.loc ? ' · ' + first.loc : ''}` : '재고 없음 · 약품·재고에서 입고해 주세요'; return `<button class="chip drug ${f.drugs[d.id] ? 'on' : ''}" data-tip="${esc(tip)}" aria-pressed="${!!f.drugs[d.id]}" data-act="tDrug" data-arg="${d.id}">${esc(d.name)}<small>${d.counted ? `재고 ${tot}${d.unit}` : '사용 횟수만 기록'}</small></button>`; };
-  const syms = v.sym || [];
-  const groups = syms.map((s) => `<div class="stack" style="gap:8px"><div class="small b muted">${esc(SYM[s])} · 학생이 고른 증상</div><div class="chips">${careList(s).map(chipCare).join('')}</div></div>`).join('');
-  const myDrugs = S.drugs.filter((d) => d.syms.some((s) => syms.includes(s)));
-  const drugGroup = myDrugs.length ? `<div class="stack" style="gap:8px"><div class="small b muted">약 · 약 목록에서 이 증상에 맞는 약</div><div class="chips">${myDrugs.map(chipDrug).join('')}</div></div>` : '';
-  const common = `<div class="stack" style="gap:8px"><div class="small b muted">공통</div><div class="chips">${COMMON_CARE.map(chipCare).join('')}</div></div>`;
-  const otherSyms = Object.keys(DEFAULT_CARE).filter((s) => !syms.includes(s));
-  const other = T.more ? `<div class="note g stack">${otherSyms.map((s) => `<div class="stack" style="gap:6px"><div class="small b muted">${esc(SYM[s])}</div><div class="chips">${careList(s).map(chipCare).join('')}</div></div>`).join('')}<div class="stack" style="gap:6px"><div class="small b muted">다른 약</div><div class="chips">${S.drugs.filter((d) => !myDrugs.includes(d)).map(chipDrug).join('')}</div></div></div>` : '';
-  const used = S.drugs.filter((d) => f.drugs[d.id]);
-  const drugUse = used.length ? `<div class="note or stack" style="color:var(--ink)"><div class="small b" style="color:var(--or-d)">쓴 약의 양 <span class="muted" style="font-weight:400">저장하면 재고에서 저절로 줄어요</span></div>${used.map((d) => { const q = f.drugs[d.id]; const unit = d.counted ? d.unit : '회'; const tot = drugTotal(d); return `<div class="between" style="align-items:center;background:#fff;border-radius:10px;padding:8px 10px 8px 14px"><div><b>${esc(d.name)}</b><div class="xs muted">${d.counted ? `지금 재고 ${tot}${d.unit} → 저장 뒤 ${Math.max(0, tot - q)}${d.unit}${tot < q ? ' (재고보다 많아요)' : ''}` : '사용 횟수만 적어요 · 통이 비면 약품·재고에서 줄여요'}</div></div><div class="stepper"><button aria-label="${esc(d.name)} 하나 줄이기" data-act="tDrugQ" data-arg="${d.id}|-1">−</button><b style="min-width:60px;text-align:center;font-size:17px">${q}${unit}</b><button aria-label="${esc(d.name)} 하나 늘리기" data-act="tDrugQ" data-arg="${d.id}|1">+</button></div></div>`; }).join('')}</div>` : '';
-  const customChips = f.custom.length ? `<div class="chips">${f.custom.map((c, i) => `<span class="row" style="gap:0;border:2px solid var(--teal);background:var(--teal);border-radius:12px;overflow:hidden"><span style="color:#fff;font-weight:700;padding:0 10px 0 14px">${esc(c)}</span><button aria-label="${esc(c)} 지우기" data-act="tCustomDel" data-arg="${i}" style="width:40px;height:44px;border:0;border-left:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;cursor:pointer;font-size:16px">×</button></span>`).join('')}</div>` : '';
-  const nCare = Object.keys(f.cares).filter((k) => f.cares[k]).length + f.custom.length + used.length;
-  return `<div class="card stack" style="gap:18px">
-  <div class="between"><div><div class="small b" style="color:var(--teal)">${v.status === 'called' ? '처치 중' : '대기 중인 학생'}</div><h1 style="font-size:26px;font-weight:900"><button class="link" style="font-size:26px;color:var(--ink)" data-act="openHist" data-arg="${v.sid}">${esc(st.name)}</button> <span class="muted" style="font-size:17px;font-weight:500">${st.grade}학년 ${st.cls}반 ${st.num}번</span> <span style="font-size:14px;font-weight:500;color:var(--or-d);background:var(--or-s);border-radius:8px;padding:2px 8px;vertical-align:middle" title="학생이 접수할 때 고른 내용">주호소 · ${esc(ccText(v) || '없음')}</span></h1></div><div class="small muted">접수 ${hm(v.at)}${v.calledAt ? ' · 입실 ' + hm(v.calledAt) : ''}</div></div>
-  ${v.status === 'wait' ? '<div class="row"><button class="btn" data-act="callThis" data-arg="' + v.id + '">이 학생 부르기</button></div>' : ''}
-  ${obsBox(v, f)}
-  <div class="stack"><div class="between"><h2 style="font-size:18px">처치 내용 <span class="muted small" style="font-weight:400">여러 개를 함께 골라도 돼요</span></h2><b class="small" style="color:var(--teal-d)">고른 처치 ${nCare}개</b></div>
-  ${groups}
-  <div class="stack" style="gap:8px;background:var(--bg);border-radius:12px;padding:12px 14px">
-    <label class="small b muted" for="tDraft">직접 입력 <span style="font-weight:400">목록에 없는 처치를 적고 추가를 눌러요</span></label>
-    <div class="row" style="flex-wrap:nowrap"><input id="tDraft" type="text" style="flex:1" value="${esc(f.draft)}" data-bind="draft" placeholder="예: 얼음물로 입 헹굼" data-enter="tCustomAdd"><button class="btn line" data-act="tCustomAdd">추가</button></div>
-    <label class="check small"><input type="checkbox" ${f.saveFav ? 'checked' : ''} data-act="tFav" style="width:18px;height:18px;accent-color:var(--teal)">추가한 처치를 '${esc(SYM_SHORT[syms[0]] || '기타')}' 칸에 저장해서 다음부터 보여 주기</label>
-    ${customChips}
-  </div>
-  ${drugGroup}${common}${drugUse}
-  <button class="link" style="align-self:flex-start" data-act="tMore">${T.more ? '다른 증상 처치 접기' : '다른 증상 처치도 보기'}</button>${other}
-  </div>
-  <div class="row" style="align-items:flex-end"><label class="f" style="width:150px">체온 (℃)<input id="tTemp" type="text" inputmode="decimal" value="${esc(f.temp)}" data-bind="temp"></label><label class="f" style="flex:1 1 300px">메모<input id="tMemo" type="text" value="${esc(f.memo)}" data-bind="memo"></label></div>
-  <div class="stack" style="gap:8px"><div class="small b muted">조치 결과</div><div class="chips">${RESULTS.map(([id, l]) => `<button class="chip ${f.result === id ? 'on' : ''}" aria-pressed="${f.result === id}" data-act="tResult" data-arg="${id}">${l}</button>`).join('')}</div></div>
-  <div class="note g"><b>기록부에 적힐 내용</b><br><span id="previewBox">${esc(previewText(v, f))}</span></div>
-  <div class="row" style="justify-content:space-between"><button class="link" style="color:var(--muted)" data-act="cancelVisit" data-arg="${v.id}">접수 취소 (학생이 돌아감)</button><div class="row"><button class="btn ghost" data-act="saveVisit" data-arg="">처치 완료·저장</button><button class="btn" data-act="saveVisit" data-arg="next">저장하고 다음 학생 입장</button></div></div>
-  </div>`;
-}
-function previewText(v, f) {
-  const cares = Object.keys(f.cares).filter((k) => f.cares[k]);
-  const drugs = S.drugs.filter((d) => f.drugs[d.id]).map((d) => `${d.name} ${f.drugs[d.id]}${d.counted ? d.unit : '회'} 투약`);
-  const st = student(v.sid) || {};
-  const all = [...cares, ...f.custom, ...drugs];
-  const ob = obsText(obsOf(f));
-  return `${whatText(v)}${ob ? ' (관찰: ' + ob + ')' : ''} → ${all.join(', ') || '처치를 골라 주세요'}${f.temp ? ' / 체온 ' + f.temp + '℃' : ''} / ${RESULT_LABEL[f.result]}`;
-}
 function histPanel(st, v) {
-  const list = linkedVisits(student(v.sid)).slice(0, 6);
+  const list = linkedVisits(student(v.sid)).filter((x) => x.id !== v.id).slice(0, 6);
   const thisYear = list.filter((x) => x.year === S.school.year).length;
   const parts = v.parts || [];
   const same = list.filter((x) => (x.parts || []).some((p) => parts.includes(p)));
@@ -812,16 +860,16 @@ function statsOf(y, grade) {
   const vs = visits.filter((v) => grade === 'all' || String((v.snap || {}).grade) === String(grade));
   const mat = Object.fromEntries(CATS.map((c) => [c, Array(12).fill(0)]));
   const monthTot = Array(12).fill(0); const symByMonth = Array(12).fill(0).map(() => ({}));
-  const care = {}; const grades = {};
+  const care = {}; const grades = {}; const labCat = {};
   vs.forEach((v) => {
-    const mi = mIndex(v.at); const cat = S.symCat[(v.sym || [])[0]] || '기타';
+    const mi = mIndex(v.at); const cat = catOf(v);
     mat[cat][mi]++; monthTot[mi]++;
-    (v.sym || []).forEach((s) => { symByMonth[mi][s] = (symByMonth[mi][s] || 0) + 1; });
+    symLabels(v).forEach(([l, c]) => { symByMonth[mi][l] = (symByMonth[mi][l] || 0) + 1; labCat[l] = c; });
     [...(v.cares || []), ...(v.custom || [])].forEach((c) => { care[c] = (care[c] || 0) + 1; });
     if ((v.drugs || []).length) care['투약'] = (care['투약'] || 0) + 1;
     const g = (v.snap || {}).grade; if (g) grades[g] = (grades[g] || 0) + 1;
   });
-  return { vs, mat, monthTot, symByMonth, care, grades };
+  return { vs, mat, monthTot, symByMonth, care, grades, labCat };
 }
 function vStats() {
   const years = uniq([S.school.year, ...S.archives.map((a) => a.year)]).sort((a, b) => b - a);
@@ -837,7 +885,7 @@ function vStats() {
   const gradeList = Object.entries(st.grades).sort((a, b) => a[0] - b[0]); const gmax = Math.max(1, ...gradeList.map((x) => x[1]));
   const topCat = catRows.slice().sort((a, b) => b.s - a.s)[0];
   return topbar('stats') + `<main class="wrap" style="max-width:1400px"><div class="stack">
-  <div class="between" style="align-items:flex-end"><div><h1 style="font-size:26px;font-weight:900">보건실 이용 통계</h1><div class="small muted">증상은 계통별로 묶어 세요(학생이 고른 첫 증상 기준). 짝은 설정에서 바꿀 수 있어요.</div></div>
+  <div class="between" style="align-items:flex-end"><div><h1 style="font-size:26px;font-weight:900">보건실 이용 통계</h1><div class="small muted">증상은 계통별로 묶어 세요(기록한 첫 증상의 계통 기준).</div></div>
   <div class="row noprint"><label class="row small" style="gap:6px"><span class="muted">학년도</span><select data-act-change="statYear">${years.map((x) => `<option value="${x}" ${x === Number(y) ? 'selected' : ''}>${x}학년도</option>`).join('')}</select></label><label class="row small" style="gap:6px"><span class="muted">학년</span><select data-act-change="statGrade"><option value="all">전체</option>${[1, 2, 3, 4, 5, 6].map((x) => `<option value="${x}" ${String(g) === String(x) ? 'selected' : ''}>${x}학년</option>`).join('')}</select></label><button class="btn ghost" data-act="doPrint">보고서 인쇄</button><button class="btn" data-act="statXlsx">엑셀로 내려받기</button></div></div>
   <div class="tiles"><div class="tile"><div class="muted small">보건실 이용</div><div class="v">${total.toLocaleString('ko-KR')}건</div></div><div class="tile"><div class="muted small">가장 많은 계통</div><div class="v">${topCat && topCat.s ? esc(topCat.c) : '-'}</div></div><div class="tile"><div class="muted small">가장 붐빈 달</div><div class="v">${total ? MONTHS[st.monthTot.indexOf(Math.max(...st.monthTot))] : '-'}</div></div><div class="tile"><div class="muted small">조퇴·병원</div><div class="v">${st.vs.filter((v) => ['early', 'hospital', 'transfer'].includes(v.result)).length}건</div></div></div>
   <div class="cols">
@@ -846,7 +894,7 @@ function vStats() {
       <div style="display:flex;gap:8px">${MONTHS.map((m, i) => `<div class="xs" style="flex:1;text-align:center;color:${selM === i ? 'var(--teal-d)' : 'var(--muted)'};font-weight:${selM === i ? 700 : 400}">${m}</div>`).join('')}</div>
     </section>
     <section class="card stack" style="flex:1 1 320px;min-width:0"><h2 style="font-size:18px">${MONTHS[selM]}에 많이 온 증상</h2><div class="small muted">이달 ${st.monthTot[selM]}건</div>
-      ${topSym.length ? topSym.map(([s, n], i) => `<div class="stack" style="gap:4px"><div class="between small"><span><b>${i + 1}</b> ${esc(SYM_SHORT[s])} <span class="xs muted">${esc(S.symCat[s] || '')}</span></span><b>${n}건</b></div><div style="height:8px;background:#EEF2F0;border-radius:4px"><div style="height:8px;width:${Math.round(n / topMax * 100)}%;background:var(--teal);border-radius:4px"></div></div></div>`).join('') : '<div class="muted small">이달 기록이 없어요</div>'}
+      ${topSym.length ? topSym.map(([s, n], i) => `<div class="stack" style="gap:4px"><div class="between small"><span><b>${i + 1}</b> ${esc(s)} <span class="xs muted">${esc(st.labCat[s] || '')}</span></span><b>${n}건</b></div><div style="height:8px;background:#EEF2F0;border-radius:4px"><div style="height:8px;width:${Math.round(n / topMax * 100)}%;background:var(--teal);border-radius:4px"></div></div></div>`).join('') : '<div class="muted small">이달 기록이 없어요</div>'}
     </section>
   </div>
   <section class="card stack"><div class="between"><h2 style="font-size:18px">계통별 · 월별 이용 건수</h2><div class="row xs muted" style="gap:6px">적음${['#E3F1EE', '#C3E2DB', '#93CBC0', '#5BAEA1', '#0F766E'].map((c) => `<span style="width:22px;height:14px;border-radius:3px;background:${c};display:inline-block"></span>`).join('')}많음</div></div>
@@ -882,7 +930,7 @@ function vPrint() {
 /* ---------- 설정 ---------- */
 function vConfig() {
   const days = [1, 2, 3, 4, 5];
-  const cs = T.careSym;
+  const sxc = T.sxCat || SX_CATS[0];
   return topbar('config') + `<main class="wrap" style="max-width:1400px"><div class="stack">
   <h1 style="font-size:26px;font-weight:900">설정</h1>
   <div class="cols">
@@ -918,13 +966,15 @@ function vConfig() {
   </section>
 
   <div class="cols">
-  <section class="card stack" style="flex:999 1 560px;min-width:0"><h2 style="font-size:19px">증상별 처치 목록</h2><div class="small muted">기본 처치는 그대로 두고, 학교에서 자주 하는 처치를 더할 수 있어요. 처치 화면에서 '저장해서 다음부터 보여 주기'로 더한 것도 여기 모여요.</div>
-    <div class="chips">${Object.keys(SYM).map((s) => `<button class="chip ${cs === s ? 'on' : ''}" data-act="careSym" data-arg="${s}">${SYM_SHORT[s]}</button>`).join('')}</div>
-    <div class="note g stack"><b>${esc(SYM[cs])}</b><div class="chips">${(DEFAULT_CARE[cs] || []).map((c) => `<span class="tag">${esc(c)}</span>`).join('')}${(S.careCustom[cs] || []).map((c, i) => `<span class="tag t">${esc(c)} <button class="link xs" aria-label="${esc(c)} 지우기" data-act="careDel" data-arg="${i}" style="padding:0 0 0 4px">×</button></span>`).join('')}</div>
-    <div class="row" style="flex-wrap:nowrap"><input id="careNew" type="text" placeholder="더할 처치" style="flex:1" data-enter="careAdd"><button class="btn line" data-act="careAdd">더하기</button></div></div>
+  <section class="card stack" style="flex:999 1 560px;min-width:0"><h2 style="font-size:19px">증상 목록 <span class="small muted" style="font-weight:400">오늘 보건일지의 증상 칸에서 고르는 목록이에요</span></h2>
+    <div class="chips">${SX_CATS.map((c) => `<button class="chip ${sxc === c ? 'on' : ''}" data-act="sxCatSet" data-arg="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div class="note g stack"><b>${esc(sxc)}</b><div class="chips">${(sxList()[sxc] || []).map((t, i) => `<span class="tag t">${esc(t)} <button class="link xs" aria-label="${esc(t)} 지우기" data-act="sxItemDel" data-arg="${i}" style="padding:0 0 0 4px">×</button></span>`).join('') || '<span class="xs muted">비어 있어요</span>'}</div>
+    <div class="row" style="flex-wrap:nowrap"><input id="sxNew" type="text" placeholder="더할 증상" style="flex:1" data-enter="sxItemAdd"><button class="btn line" data-act="sxItemAdd">더하기</button></div></div>
+    <button class="link small" style="align-self:flex-start;color:var(--muted)" data-act="sxReset">처음 목록으로 되돌리기</button>
   </section>
-  <section class="card stack" style="flex:1 1 360px;min-width:0"><h2 style="font-size:19px">증상과 계통 짝 (통계용)</h2>
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">${Object.keys(SYM).map((s) => `<label class="f" style="font-weight:400">${SYM_SHORT[s]}<select data-act-change="symCat" data-arg="${s}">${CATS.map((c) => `<option ${S.symCat[s] === c ? 'selected' : ''}>${c}</option>`).join('')}</select></label>`).join('')}</div>
+  <section class="card stack" style="flex:1 1 400px;min-width:0"><h2 style="font-size:19px">자주 쓰는 처치</h2><div class="small muted">처치 및 처방 칸 맨 위에 보여요. 약은 약품·재고에서 관리해요.</div>
+    <div class="chips">${careQuick().map((c, i) => `<span class="tag t">${esc(c)} <button class="link xs" aria-label="${esc(c)} 지우기" data-act="cqDel" data-arg="${i}" style="padding:0 0 0 4px">×</button></span>`).join('')}</div>
+    <div class="row" style="flex-wrap:nowrap"><input id="cqNew" type="text" placeholder="더할 처치" style="flex:1" data-enter="cqAdd"><button class="btn line" data-act="cqAdd">더하기</button></div>
   </section></div>
 
   <section class="card stack"><h2 style="font-size:19px">자료 보관</h2><div class="small muted">기록은 보건실 비밀번호로 암호화되어 우리 학교 클라우드에 저장돼요. 그래도 학기마다 백업 파일을 내려받아 학교 컴퓨터에 보관해 두면 더 안전해요. 백업 파일은 암호화되지 않으니 잘 보관해 주세요.</div>
@@ -1001,11 +1051,11 @@ function writeBook(filename, sheets) {
 }
 function yearBook(y, visits, roster, noPhone) {
   const done = visits.filter((v) => v.status === 'done').sort((a, b) => a.at - b.at);
-  const rows = [['날짜', '접수', '학년', '반', '번호', '이름', '부위', '증상', '언제부터', '관찰 부위·진단', '관찰 서술 기록', '처치', '직접 입력 처치', '투약', '체온', '보호자 연락', '조치', '퇴실', '메모']];
-  done.forEach((v) => { const s = v.snap || {}; rows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, (v.parts || []).map((p) => PART_LABEL[p]).join(', '), (v.sym || []).map((x) => SYM_SHORT[x]).join(', '), (SINCE.find((x) => x[0] === v.since) || [])[1] || '', obsText(v.obs, false), (v.obs && v.obs.note) || '', (v.cares || []).join(', '), (v.custom || []).join(', '), drugText(v), v.temp || '', (v.calls || []).map((c) => c.rel + ' ' + hm(c.at)).join(', '), RESULT_LABEL[v.result] || '', v.doneAt ? hm(v.doneAt) : '', v.memo || '']); });
+  const rows = [['날짜', '접수', '학년', '반', '번호', '이름', '부위', '증상', '계통', '학생이 고른 증상', '처치', '직접 입력 처치', '투약', '체온', '보호자 연락', '조치', '퇴실', '메모']];
+  done.forEach((v) => { const s = v.snap || {}; rows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, (v.parts || []).map((p) => PART_LABEL[p]).join(', '), whatText(v), catOf(v), (v.sym || []).map((x) => SYM_SHORT[x]).join(', '), (v.cares || []).join(', '), (v.custom || []).join(', '), drugText(v), v.temp || '', (v.calls || []).map((c) => c.rel + ' ' + hm(c.at)).join(', '), RESULT_LABEL[v.result] || '', v.doneAt ? hm(v.doneAt) : '', v.memo || '']); });
   const per = {}; done.forEach((v) => { const s = v.snap || {}; const k = v.sid; per[k] = per[k] || { s, n: 0, d: 0 }; per[k].n++; if ((v.drugs || []).length) per[k].d++; });
   const perRows = [['학년', '반', '번호', '이름', '방문 횟수', '투약 횟수']].concat(Object.values(per).sort((a, b) => b.n - a.n).map((p) => [p.s.grade, p.s.cls, p.s.num, p.s.name, p.n, p.d]));
-  const mat = Object.fromEntries(CATS.map((c) => [c, Array(12).fill(0)])); done.forEach((v) => { mat[S.symCat[(v.sym || [])[0]] || '기타'][mIndex(v.at)]++; });
+  const mat = Object.fromEntries(CATS.map((c) => [c, Array(12).fill(0)])); done.forEach((v) => { mat[catOf(v)][mIndex(v.at)]++; });
   const statRows = [['계통', ...MONTHS, '합계']].concat(CATS.map((c) => [c, ...mat[c], sum(mat[c])])).concat([['합계', ...MONTHS.map((_, i) => sum(CATS.map((c) => mat[c][i]))), done.length]]);
   const drugRows = [['날짜', '시각', '학년', '반', '번호', '이름', '약', '양']]; done.forEach((v) => (v.drugs || []).forEach((d) => { const s = v.snap || {}; drugRows.push([kdate(v.at), hm(v.at), s.grade, s.cls, s.num, s.name, d.name, d.qty + d.unit]); }));
   const stockRows = [['약 이름', '종류', '남은 양', '단위', '유통기한(묶음별)', '보관 위치']].concat(S.drugs.map((d) => [d.name, d.kind, drugTotal(d), d.unit, d.lots.map((l) => kexp(l.exp) + ' ' + l.qty + d.unit).join(' / '), uniq(d.lots.map((l) => l.loc).filter(Boolean)).join(', ')]));
@@ -1144,39 +1194,54 @@ const A = {
   kCloseCall: () => { S.call = null; save(); render(); },
   // 선생님
   callNext: () => { const n = queue().find((x) => x.status === 'wait'); if (!n) return; A.callThis(n.id); },
-  callThis: (id) => { const v = S.visits.find((x) => x.id === id); if (!v) return; v.status = 'called'; v.calledAt = now(); S.call = { vid: v.id, at: now() }; T.cur = v.id; save(); render(); toast(`${(v.snap || {}).name} 학생을 불렀어요`); },
-  recall: () => { const v = curVisit(); if (!v) return; if (v.status === 'wait') { A.callThis(v.id); return; } S.call = { vid: v.id, at: now() }; save(); toast('다시 불렀어요'); },
-  pickVisit: (id) => { T.cur = id; render(); },
-  tCare: (a) => { const f = form(curVisit()); f.cares[a] = !f.cares[a]; render(); },
-  tDrug: (a) => { const f = form(curVisit()); if (f.drugs[a]) delete f.drugs[a]; else f.drugs[a] = 1; render(); },
-  tDrugQ: (a) => { const [id, d] = a.split('|'); const f = form(curVisit()); f.drugs[id] = Math.max(1, (f.drugs[id] || 1) + Number(d)); render(); },
-  tMore: () => { T.more = !T.more; render(); },
-  tCustomAdd: () => { const v = curVisit(); const f = form(v); const t = (f.draft || '').trim(); if (!t) return; if (!f.custom.includes(t)) f.custom.push(t); f.draft = ''; render(); },
-  tCustomDel: (i) => { const f = form(curVisit()); f.custom.splice(Number(i), 1); render(); },
-  tFav: () => { const f = form(curVisit()); f.saveFav = !f.saveFav; },
-  tCall: (i) => { const f = form(curVisit()); f.calls[i] = f.calls[i] ? 0 : now(); render(); },
-  tResult: (a) => { form(curVisit()).result = a; render(); },
-  oPart: (a) => { const o = form(curVisit()).obs; o.parts[a] = !o.parts[a]; render(); },
-  oNext: () => { const o = form(curVisit()).obs; if (!Object.values(o.parts).some(Boolean)) return; o.step = 'dx'; render(); },
-  oBack: () => { form(curVisit()).obs.step = 'body'; render(); },
-  oDx: (a) => { const o = form(curVisit()).obs; o.dx[a] = !o.dx[a]; render(); },
-  saveVisit: (next) => {
-    const v = curVisit(); if (!v) return; const f = form(v); const st = student(v.sid) || {};
-    const cares = Object.keys(f.cares).filter((k) => f.cares[k]);
-    if (!cares.length && !f.custom.length && !Object.keys(f.drugs).length) { toast('처치를 하나 이상 골라 주세요'); return; }
-    v.cares = cares; v.custom = f.custom.slice(); v.temp = f.temp; v.memo = f.memo; v.result = f.result; v.status = 'done'; v.doneAt = now(); if (!v.calledAt) v.calledAt = v.at;
-    const ob = obsOf(f); if (ob) v.obs = ob; else delete v.obs;
-    v.drugs = S.drugs.filter((d) => f.drugs[d.id]).map((d) => { const q = f.drugs[d.id]; const note = `처치 · ${clsText(v.snap)} ${v.snap.name}`; if (d.counted) deduct(d, q, note); else S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: -0, qtyText: '사용 ' + q + '회', note }); return { id: d.id, name: d.name, qty: q, unit: d.counted ? d.unit : '회' }; });
-    if (f.saveFav && f.custom.length) { const k = (v.sym || ['etc'])[0]; S.careCustom[k] = uniq([...(S.careCustom[k] || []), ...f.custom]); }
-    delete T.f[v.id]; T.cur = null; if (S.call && S.call.vid === v.id) S.call = null; save();
-    toast('저장했어요');
-    if (next) A.callNext(); else render();
+  callThis: (id) => { const v = S.visits.find((x) => x.id === id); if (!v) return; startRow(v); S.call = { vid: v.id, at: now() }; save(); render(); toast(`${(v.snap || {}).name} 학생을 불렀어요`); },
+  recall: () => { const v = S.call && S.visits.find((x) => x.id === S.call.vid); if (!v) return; S.call = { vid: v.id, at: now() }; save(); toast('다시 불렀어요'); },
+  // 표에 학생 바로 추가
+  addRow: (sid) => { const st = student(sid); if (!st) return; const v = { id: uid(), sid: st.id, snap: snap(st), at: now(), parts: [], sym: [], since: '', status: 'wait' }; startRow(v); S.visits.push(v); T.addQ = ''; T.pop = { vid: v.id, kind: 'sx', cat: SX_CATS[0] }; save(); render(); },
+  addFirst: () => { const c = addCandidates(document.getElementById('addIn')?.value || T.addQ)[0]; if (c) A.addRow(c.id); },
+  // 고르는 창
+  openPop: (a) => { const [vid, kind] = a.split('|'); if (T.pop && T.pop.vid === vid && T.pop.kind === kind) { T.pop = null; render(); return; } const v = S.visits.find((x) => x.id === vid); T.histPop = null; T.pop = { vid, kind, cat: (v && v.sx && v.sx[0] && v.sx[0].c) || SX_CATS[0] }; render(); setTimeout(() => document.getElementById('popIn')?.focus({ preventScroll: true }), 30); },
+  popClose: () => { T.pop = null; render(); },
+  popCat: (c) => { T.pop.cat = c; render(); },
+  popAdd: () => {
+    const el = document.getElementById('popIn'); const t = (el?.value || '').trim(); if (!t || !T.pop) return;
+    const v = S.visits.find((x) => x.id === T.pop.vid); if (!v) return;
+    if (T.pop.kind === 'sx') { v.sx = v.sx || []; if (!v.sx.some((x) => x.t === t)) v.sx.push({ c: T.pop.cat || '기타', t }); }
+    else { v.custom = v.custom || []; if (!v.custom.includes(t) && !(v.cares || []).includes(t)) v.custom.push(t); }
+    el.value = ''; save(); render();
   },
-  cancelVisit: async (id) => { const ok = await ask('접수를 취소할까요?', '학생이 돌아갔거나 잘못 접수했을 때 써요. 기록부에는 남지 않아요.', '접수 취소', true); if (!ok) return; const v = S.visits.find((x) => x.id === id); if (v) v.status = 'cancel'; T.cur = null; save(); render(); },
-  reopen: (id) => { const v = S.visits.find((x) => x.id === id); if (!v) return; T.f[v.id] = { cares: Object.fromEntries((v.cares || []).map((c) => [c, true])), drugs: Object.fromEntries((v.drugs || []).map((d) => [d.id, d.qty])), custom: (v.custom || []).slice(), draft: '', saveFav: false, temp: v.temp || '', memo: v.memo || '', result: v.result || 'back', calls: {},
-      obs: v.obs ? { step: 'dx', parts: Object.fromEntries((v.obs.parts || []).map((p) => [p, true])), dx: Object.fromEntries((v.obs.dx || []).map((x) => [x.p + '|' + x.d, true])) } : undefined, obsNote: v.obs ? v.obs.note || '' : '' };
-    (v.drugs || []).forEach((d) => { const dr = S.drugs.find((x) => x.id === d.id); if (dr && dr.counted) { dr.lots.push({ id: uid(), exp: dr.lots.map((l) => l.exp).sort()[0] || ymd(now() + 365 * 86400000), qty: d.qty, loc: '' }); S.stockLog.unshift({ at: now(), did: dr.id, name: dr.name, delta: d.qty, qtyText: d.qty + dr.unit, note: '기록 고치기로 되돌림' }); } });
-    v.status = 'called'; T.cur = v.id; save(); render(); window.scrollTo(0, 0); },
+  sxToggle: (a) => { const v = S.visits.find((x) => x.id === T.pop.vid); if (!v) return; const i = a.indexOf('|'); const c = a.slice(0, i), t = a.slice(i + 1); v.sx = v.sx || []; const k = v.sx.findIndex((x) => x.c === c && x.t === t); if (k >= 0) v.sx.splice(k, 1); else v.sx.push({ c, t }); save(); render(); },
+  sxDel: (a) => { const [vid, j] = a.split('|'); const v = S.visits.find((x) => x.id === vid); if (!v || !v.sx) return; v.sx.splice(Number(j), 1); save(); render(); },
+  txCare: (c) => { const v = S.visits.find((x) => x.id === T.pop.vid); if (!v) return; v.cares = v.cares || []; const k = v.cares.indexOf(c); if (k >= 0) v.cares.splice(k, 1); else v.cares.push(c); save(); render(); },
+  txDrug: (id) => {
+    const v = S.visits.find((x) => x.id === T.pop.vid); const d = S.drugs.find((x) => x.id === id); if (!v || !d) return;
+    v.drugs = v.drugs || []; const u = v.drugs.find((x) => x.id === id);
+    if (u) { drugRestore(d, u.qty, '기록에서 뺌 · ' + vNote(v)); v.drugs = v.drugs.filter((x) => x.id !== id); }
+    else { if (d.counted && drugTotal(d) < 1) toast(`${d.name} 재고가 없어요 · 기록은 남겨요`); drugUse(d, 1, vNote(v)); v.drugs.push({ id: d.id, name: d.name, qty: 1, unit: d.counted ? d.unit : '회' }); }
+    save(); render();
+  },
+  txDrugQ: (a) => {
+    const [id, dd] = a.split('|'); const v = S.visits.find((x) => x.id === T.pop.vid); const d = S.drugs.find((x) => x.id === id); if (!v || !d) return;
+    const u = (v.drugs || []).find((x) => x.id === id); if (!u) return;
+    if (Number(dd) > 0) { drugUse(d, 1, vNote(v)); u.qty++; } else if (u.qty > 1) { drugRestore(d, 1, '양 줄임 · ' + vNote(v)); u.qty--; }
+    save(); render();
+  },
+  txDel: (a) => {
+    const [vid, kind, k] = a.split('|'); const v = S.visits.find((x) => x.id === vid); if (!v) return;
+    if (kind === 'c') v.cares.splice(Number(k), 1);
+    if (kind === 'u') v.custom.splice(Number(k), 1);
+    if (kind === 'd') { const u = (v.drugs || []).find((x) => x.id === k); const d = S.drugs.find((x) => x.id === k); if (u && d) drugRestore(d, u.qty, '기록에서 뺌 · ' + vNote(v)); v.drugs = (v.drugs || []).filter((x) => x.id !== k); }
+    save(); render();
+  },
+  vOut: (vid) => { const v = S.visits.find((x) => x.id === vid); if (!v) return; v.doneAt = now(); save(); render(); },
+  vDel: async (vid) => {
+    const v = S.visits.find((x) => x.id === vid); if (!v) return;
+    const ok = await ask('이 기록을 지울까요?', `<b>${esc((v.snap || {}).name || '')}</b> 학생의 오늘 기록을 지워요. 쓴 약은 재고로 되돌려요.`, '지우기', true); if (!ok) return;
+    (v.drugs || []).forEach((u) => { const d = S.drugs.find((x) => x.id === u.id); if (d) drugRestore(d, u.qty, '기록 지움 · ' + vNote(v)); });
+    v.drugs = []; v.status = 'cancel'; if (T.pop && T.pop.vid === vid) T.pop = null; save(); render();
+  },
+  histPop: (vid) => { T.pop = null; T.histPop = T.histPop === vid ? null : vid; render(); },
+  histPopClose: () => { T.histPop = null; render(); },
   walkOpen: () => { T.walk = T.walk ? null : { grade: '', cls: '', sid: '', sym: '' }; render(); },
   walkClose: () => { T.walk = null; render(); },
   walkAdd: () => { const w = T.walk; const st = student(w.sid); if (!st || !w.sym) { toast('학생과 증상을 골라 주세요'); return; } const v = { id: uid(), sid: st.id, snap: snap(st), at: now(), parts: [], sym: [w.sym], since: 'now', status: 'called', calledAt: now() }; S.visits.push(v); T.cur = v.id; T.walk = null; save(); render(); },
@@ -1211,6 +1276,12 @@ const A = {
   // 설정
   cfgToggle: (k) => { S.settings[k] = !S.settings[k]; save(); },
   careSym: (s) => { T.careSym = s; render(); },
+  sxCatSet: (c) => { T.sxCat = c; render(); },
+  sxItemAdd: () => { const i = document.getElementById('sxNew'); const t = (i.value || '').trim(); if (!t) return; const c = T.sxCat || SX_CATS[0]; S.sxList = S.sxList || JSON.parse(JSON.stringify(SX_DEFAULT)); S.sxList[c] = uniq([...(S.sxList[c] || []), t]); save(); render(); },
+  sxItemDel: (i) => { const c = T.sxCat || SX_CATS[0]; S.sxList = S.sxList || JSON.parse(JSON.stringify(SX_DEFAULT)); S.sxList[c].splice(Number(i), 1); save(); render(); },
+  sxReset: async () => { if (!(await ask('증상 목록을 처음으로 되돌릴까요?', '더하거나 지운 증상이 모두 처음 목록으로 바뀌어요. 이미 적은 기록은 그대로예요.', '되돌리기', true))) return; S.sxList = JSON.parse(JSON.stringify(SX_DEFAULT)); save(); render(); },
+  cqAdd: () => { const i = document.getElementById('cqNew'); const t = (i.value || '').trim(); if (!t) return; S.careQuick = uniq([...careQuick(), t]); save(); render(); },
+  cqDel: (i) => { S.careQuick = careQuick().slice(); S.careQuick.splice(Number(i), 1); save(); render(); },
   careAdd: () => { const i = document.getElementById('careNew'); const t = i.value.trim(); if (!t) return; S.careCustom[T.careSym] = uniq([...(S.careCustom[T.careSym] || []), t]); save(); render(); },
   careDel: (i) => { S.careCustom[T.careSym].splice(Number(i), 1); save(); render(); },
   rosterTemplate: () => writeBook('똑똑_명렬표_양식.xlsx', { '명렬표': [['학년', '반', '번호', '이름', '주의 메모'], [1, 1, 1, '김하늘', '']] }),
@@ -1240,6 +1311,7 @@ const CH = {
   statGrade: (el) => { T.statGrade = el.value; render(); },
   printDate: (el) => { T.printDate = el.value || ymd(now()); render(); },
   symCat: (el) => { S.symCat[el.dataset.arg] = el.value; save(); },
+  vTime: (el) => { const [vid, k] = el.dataset.arg.split('|'); const v = S.visits.find((x) => x.id === vid); if (!v) return; if (!el.value) { if (k === 'out') { delete v.doneAt; save(); render(); } return; } const [h, m] = el.value.split(':').map(Number); const d = new Date(v.at); d.setHours(h, m, 0, 0); if (k === 'in') v.calledAt = d.getTime(); else v.doneAt = d.getTime(); save(); render(); },
   purCol: (el) => { T.pur.cols[el.dataset.arg] = Number(el.value); buildPurRows(); render(); },
   purHdr: (el) => { T.pur.hdr = Number(el.value); guessPurCols(); buildPurRows(); render(); },
   purMatch: (el) => { const r = T.pur.rows[Number(el.dataset.arg)]; r.match = el.value; const d = S.drugs.find((x) => x.id === el.value); if (d) r.unit = d.unit; render(); },
@@ -1266,12 +1338,13 @@ document.addEventListener('click', (e) => {
 document.addEventListener('change', (e) => { const el = e.target; const k = el.dataset && el.dataset.actChange; if (k && CH[k]) CH[k](el); });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return; const el = e.target;
-  if (el.dataset && el.dataset.enter && A[el.dataset.enter]) { e.preventDefault(); if (el.dataset.bind) { const v = curVisit(); if (v) form(v).draft = el.value; } A[el.dataset.enter](); }
+  if (e.isComposing || e.keyCode === 229) return; // 한글 입력 중 Enter는 글자 확정이에요
+  if (el.dataset && el.dataset.enter && A[el.dataset.enter]) { e.preventDefault(); A[el.dataset.enter](); }
   if (el.id === 'pinIn') A.unlock(); if (el.id === 'setupName') A.setupStart();
 });
 document.addEventListener('input', (e) => {
   const el = e.target; const d = el.dataset || {};
-  if (d.bind) { const v = curVisit(); if (v) { form(v)[d.bind] = el.value; const pb = document.getElementById('previewBox'); if (pb) pb.textContent = previewText(v, form(v)); } return; }
+  if (d.vmemo) { const v = S.visits.find((x) => x.id === d.vmemo); if (v) { v.memo = el.value; save(); } return; }
   if (d.bindRoot) { T[d.bindRoot] = el.value; if (d.live) render(); return; }
   if (d.bindForm) { T.form[d.bindForm] = el.value; if (d.bindForm === 'drug') render(); return; }
   if (d.bindDrug) { (T.newDrug || T._draft)[d.bindDrug] = el.value; return; }
