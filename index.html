@@ -194,7 +194,7 @@ table.log .cell.vs{font-size:13px;color:var(--teal-d);font-weight:700}
 <div id="overlay"></div>
 <script>
 'use strict';
-const VERSION = '0.6.0';
+const VERSION = '0.7.0';
 // 만든 사람 (공동 작업) — 이어 만드는 선생님 이름을 이 목록에 더하면 첫 화면·설정 아래에 함께 보여요
 const CREDITS = ['음악적체육인'];
 const creditText = () => '만든 사람 ' + CREDITS.join(' · ');
@@ -210,7 +210,9 @@ const pad = (n) => String(n).padStart(2, '0');
 const hm = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 const ymd = (t) => { const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
 const kdate = (t) => { const d = new Date(t); return d.getFullYear() + '. ' + (d.getMonth() + 1) + '. ' + d.getDate() + '.'; };
-const kexp = (s) => { if (!s) return ''; const [y, m, d] = s.split('-'); return y + '. ' + Number(m) + '. ' + Number(d) + '.'; };
+const kexp = (s) => { if (!s) return ''; const [y, m] = s.split('-'); return `${y}년 ${Number(m)}월`; };
+const monthEnd = (ym) => { if (!ym) return ''; if (/^\d{4}-\d{2}-\d{2}$/.test(ym)) return ym; const [y, m] = ym.split('-').map(Number); return `${ym}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`; };
+const kbuy = (s) => { if (!s) return ''; const [y, m, d] = s.split('-'); return `${y}. ${Number(m)}. ${Number(d)}.`; };
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const schoolYear = (t) => { const d = new Date(t); return d.getMonth() + 1 >= 3 ? d.getFullYear() : d.getFullYear() - 1; };
 const mask = (n) => { n = String(n || ''); if (n.length <= 1) return n; if (n.length === 2) return n[0] + '*'; return n[0] + '*'.repeat(n.length - 2) + n[n.length - 1]; };
@@ -319,19 +321,35 @@ const DEFAULT_PERIODS = [
 ];
 const PLACES = [['auto', '일정대로 (자동)'], ['room', '보건실'], ['staff', '교무실'], ['meeting', '회의 중'], ['trip', '출장'], ['round', '교내 순회']];
 const PLACE_TEXT = { staff: '교무실에 계세요', meeting: '회의 중이에요', trip: '오늘은 출장 중이에요', round: '학교 안을 돌고 계세요' };
+// 약 이름으로 맞는 증상 계통을 짐작해요 (약품·재고에서 고칠 수 있어요)
+function autoCats(name) {
+  const n = String(name || '').replace(/\s/g, ''); const out = [];
+  const add = (c) => { if (!out.includes(c)) out.push(c); };
+  if (/베아제|훼스탈|활명수|베나치오|멕시롱|알마겔|겔포스|정로환|소화|위장|까스|가스|탈시드|개비스콘|노루모|제산|소화제|비오페르민|스멕타|로페린/.test(n)) add('소화기');
+  if (/타이레놀|펜잘|게보린|이지엔|탁센|이부|애드빌|아세트아미노펜|진통|두통|그날엔|알지싹|사리돈/.test(n)) { add('두통'); add('감염병'); }
+  if (/이지엔6이브|이브|알지싹|탁센|그날엔|생리|우먼/.test(n)) add('비뇨생식');
+  if (/화이투벤|모드코|콜대원|판콜|판피린|코프|기침|감기|백초|시럽|콜|래피콜|테라플루/.test(n)) add('호흡기');
+  if (/트로키|미놀|스트렙실|목캔디|인후|용각산|노즈|콧물|코막|비염|지르텍|알러/.test(n)) add('이비인후');
+  if (/마데카솔|후시딘|연고|밴드|메디폼|포비돈|소독|과산화|거즈|드레싱|에스로반|박트로반|상처|이지덤|듀오덤|습윤/.test(n)) add('외상');
+  if (/파스|신신|케토톱|타스|제놀|멘소래담|볼타렌|트라스트|에어파스|쿨파스|근육|(^|[^포])겔/.test(n) && !/겔포스|알마겔|현탁/.test(n)) add('근골격계');
+  if (/버물리|물파스|리도멕스|쎄레스톤|항히스타민|가려움|피부|벌레|아토|칼라민|비판텐/.test(n)) add('피부과');
+  if (/안약|인공눈물|눈|아이/.test(n)) add('안과');
+  if (/오라메디|알보칠|가글|구내염|치약|잇몸/.test(n)) add('구강치아');
+  return out;
+}
 const DEFAULT_DRUGS = () => [
-  { id: 'acet', name: '아세트아미노펜 정', kind: '해열진통제', unit: '정', min: 20, counted: true, syms: ['head', 'fever', 'period'], lots: [] },
-  { id: 'ibu', name: '이부프로펜 시럽', kind: '해열진통제', unit: '병', min: 1, counted: false, syms: ['fever', 'head'], lots: [] },
-  { id: 'keto', name: '소염진통 패치', kind: '파스', unit: '매', min: 10, counted: true, syms: ['bruise', 'sprain', 'muscle'], lots: [] },
-  { id: 'gel', name: '소염진통 겔', kind: '바르는 약', unit: '개', min: 2, counted: false, syms: ['bruise', 'sprain', 'muscle'], lots: [] },
-  { id: 'antacid', name: '제산제 현탁액', kind: '위장약', unit: '포', min: 10, counted: true, syms: ['stomach', 'nausea'], lots: [] },
-  { id: 'digest', name: '소화제 정', kind: '위장약', unit: '정', min: 10, counted: true, syms: ['stomach'], lots: [] },
-  { id: 'oint', name: '상처 연고', kind: '바르는 약', unit: '개', min: 2, counted: false, syms: ['cut', 'burn'], lots: [] },
-  { id: 'povi', name: '포비돈 소독액', kind: '소독약', unit: '병', min: 1, counted: false, syms: ['cut'], lots: [] }
+  { id: 'acet', name: '아세트아미노펜 정', kind: '해열진통제', unit: '개', min: 2, counted: false, cats: ['두통', '감염병', '비뇨생식'], syms: ['head', 'fever', 'period'], lots: [] },
+  { id: 'ibu', name: '이부프로펜 시럽', kind: '해열진통제', unit: '개', min: 1, counted: false, cats: ['두통', '감염병'], syms: ['fever', 'head'], lots: [] },
+  { id: 'keto', name: '소염진통 패치', kind: '파스', unit: '묶음', min: 2, counted: false, cats: ['근골격계'], syms: ['bruise', 'sprain', 'muscle'], lots: [] },
+  { id: 'gel', name: '소염진통 겔', kind: '바르는 약', unit: '개', min: 1, counted: false, cats: ['근골격계'], syms: ['bruise', 'sprain', 'muscle'], lots: [] },
+  { id: 'antacid', name: '제산제 현탁액', kind: '위장약', unit: '개', min: 1, counted: false, cats: ['소화기'], syms: ['stomach', 'nausea'], lots: [] },
+  { id: 'digest', name: '소화제 정', kind: '위장약', unit: '개', min: 1, counted: false, cats: ['소화기'], syms: ['stomach'], lots: [] },
+  { id: 'oint', name: '상처 연고', kind: '바르는 약', unit: '개', min: 1, counted: false, cats: ['외상'], syms: ['cut', 'burn'], lots: [] },
+  { id: 'povi', name: '포비돈 소독액', kind: '소독약', unit: '개', min: 1, counted: false, cats: ['외상'], syms: ['cut'], lots: [] }
 ];
 const newCode = () => String(Math.floor(100000 + Math.random() * 900000));
 const blankState = () => ({
-  v: 1, school: { name: '', year: schoolYear(now()), code: newCode() }, roster: [], visits: [], drugs: DEFAULT_DRUGS(), stockLog: [],
+  v: 1, school: { name: '', year: schoolYear(now()), code: newCode() }, roster: [], visits: [], drugs: [], stockLog: [],
   careCustom: {}, symCat: { ...DEFAULT_SYMCAT }, sxList: JSON.parse(JSON.stringify(SX_DEFAULT)), careQuick: CARE_QUICK_DEFAULT.slice(), careByCat: JSON.parse(JSON.stringify(CARE_BY_CAT)), special: [], periods: DEFAULT_PERIODS.map((p) => ({ ...p })), schedule: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
   override: { place: 'auto', until: '' }, settings: { maskName: false, chime: true, warnDays: 60, pin: '', purMap: null }, archives: [], call: null
 });
@@ -866,8 +884,14 @@ function popHtml() {
     ${fit.length ? `<div class="xs b" style="margin-bottom:6px;color:var(--teal-d)">증상에 맞는 처치 <span class="muted" style="font-weight:400">${esc(vcats.join(' · '))}</span></div><div class="chips" style="gap:6px;margin-bottom:12px">${fit.map(chip).join('')}</div>` : '<div class="xs muted" style="margin-bottom:8px">증상을 먼저 고르면 그 증상에 맞는 처치가 여기 먼저 보여요</div>'}
     <div class="xs b muted" style="margin-bottom:6px">자주 쓰는 처치</div>
     <div class="chips" style="gap:6px">${quick.map(chip).join('')}</div>
-    <div class="xs b muted" style="margin:12px 0 6px">투약</div>
-    <div class="chips drugs" style="gap:6px">${S.drugs.map((d) => { const on = used.some((u) => u.id === d.id); return `<button class="chip sm drug ${on ? 'on' : ''}" aria-pressed="${on}" data-act="txDrug" data-arg="${d.id}">${esc(d.name)}</button>`; }).join('') || '<span class="xs muted">약품·재고에서 약을 더해 주세요</span>'}</div>
+    ${(() => {
+      const dchip = (d) => { const on = used.some((u) => u.id === d.id); const out = !drugTotal(d); return `<button class="chip sm drug ${on ? 'on' : ''}" ${out ? 'style="opacity:.55" data-tip="재고 없음"' : ''} aria-pressed="${on}" data-act="txDrug" data-arg="${d.id}">${esc(d.name)}</button>`; };
+      const fitD = S.drugs.filter((d) => (d.cats || autoCats(d.name)).some((c) => vcats.includes(c)));
+      const rest = S.drugs.filter((d) => !fitD.includes(d)).sort((a, b) => (drugTotal(b) > 0) - (drugTotal(a) > 0));
+      if (!S.drugs.length) return '<div class="xs b muted" style="margin:12px 0 6px">투약</div><span class="xs muted">약품·재고에서 품의서를 올리거나 약을 더하면 여기에 보여요</span>';
+      return (fitD.length ? `<div class="xs b" style="margin:12px 0 6px;color:var(--or-d)">증상에 맞는 약</div><div class="chips drugs" style="gap:6px">${fitD.map(dchip).join('')}</div>` : '')
+        + `<div class="xs b muted" style="margin:12px 0 6px">${fitD.length ? '다른 약' : '투약'}</div><div class="chips drugs" style="gap:6px">${rest.map(dchip).join('')}</div>`;
+    })()}
     <button class="btn sm" style="margin-top:12px" data-act="popClose">선택 완료</button></div>`;
 }
 function histPopHtml() {
@@ -960,13 +984,13 @@ function vHistory() {
 /* ---------- 약품·재고 ---------- */
 function vDrugs() {
   const al = drugAlerts();
-  const intakeOne = () => { const d = S.drugs.find((x) => x.id === T.form.drug) || S.drugs[0]; return `<label class="f">약 이름<select id="inDrug" data-bind-form="drug">${S.drugs.map((x) => `<option value="${x.id}" ${d && x.id === d.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px"><label class="f">들어온 양 (${esc(d ? d.unit : '')})<input id="inQty" type="text" inputmode="numeric" value="${esc(T.form.qty)}" data-bind-form="qty"></label><label class="f">유통기한<input id="inExp" type="date" value="${esc(T.form.exp)}" data-bind-form="exp"></label></div>
+  const intakeOne = () => { const d = S.drugs.find((x) => x.id === T.form.drug) || S.drugs[0]; if (!S.drugs.length) return '<div class="muted small">아직 약이 없어요. \'품의서 엑셀로\'를 쓰거나 오른쪽 \'새 약 추가\'로 먼저 약을 만들어 주세요.</div>'; return `<label class="f">약 이름<select id="inDrug" data-bind-form="drug">${S.drugs.map((x) => `<option value="${x.id}" ${d && x.id === d.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px"><label class="f">구입일<input id="inBuy" type="date" value="${esc(T.form.buy || ymd(now()))}" data-bind-form="buy"></label><label class="f">들어온 양 (${esc(d ? d.unit : '개')})<input id="inQty" type="text" inputmode="numeric" value="${esc(T.form.qty)}" data-bind-form="qty"></label><label class="f">유통기한 (년·월)<input id="inExp" type="month" value="${esc((T.form.exp || '').slice(0, 7))}" data-bind-form="exp"></label></div>
     <label class="f">보관 위치 <span class="xs" style="font-weight:400">(선택)</span><input id="inLoc" type="text" value="${esc(T.form.loc)}" placeholder="예: 약장 2칸" data-bind-form="loc"></label>
     <button class="btn big" data-act="intakeOne">입고하기</button>`; };
   const intakeXls = () => `<label class="btn ghost" style="border-style:dashed;min-height:80px;flex-direction:column;cursor:pointer">품의서 엑셀 파일 고르기<span class="xs muted" style="font-weight:400">품명·규격·수량을 읽어 아래에 미리 보여 줘요</span><input id="purFile" type="file" accept=".xlsx,.xls,.csv" data-act-change="purFile" style="display:none"></label><div class="xs muted" style="line-height:1.5">학교마다 서식이 달라서, 처음 한 번만 '품명'과 '수량'이 어느 열인지 골라 주면 다음부터 기억해요.</div>${T.pur ? `<div class="note t small"><b>${esc(T.pur.file)}</b> · ${T.pur.rows.length}줄 읽음</div>` : ''}`;
   return topbar('drugs') + `<main class="wrap" style="max-width:1400px"><div class="stack">
-  <div class="between" style="align-items:flex-end"><div><h1 style="font-size:26px;font-weight:900">약품 입고와 재고</h1><div class="small muted">처치 때 쓴 만큼 저절로 줄어요. 같은 약이 여러 번 들어오면 유통기한이 빠른 것부터 줄여요.</div></div>
+  <div class="between" style="align-items:flex-end"><div><h1 style="font-size:26px;font-weight:900">약품 입고와 재고</h1><div class="small muted">약은 상자·묶음 단위로 세요. 같은 약도 구입일마다 유통기한을 따로 적어요. 다 쓰거나 버린 묶음은 '빼기'로 줄여요.</div></div>
   <label class="row small" style="gap:6px"><span class="muted">유통기한 알림</span><select id="warnSel" data-act-change="setWarn">${[30, 60, 90].map((d) => `<option value="${d}" ${Number(S.settings.warnDays) === d ? 'selected' : ''}>${d}일 전</option>`).join('')}</select></label></div>
   ${al.length ? `<div class="row" style="align-items:stretch">${al.map((a) => `<div class="note ${a.kind === 'low' ? 'or' : 'y'}" style="flex:1 1 280px"><div class="xs b">${a.kind === 'low' ? '재고 부족' : a.kind === 'expired' ? '유통기한 지남' : '유통기한 임박'}</div><div class="b" style="color:var(--ink)">${esc(a.text)}</div></div>`).join('')}</div>` : '<div class="note t small">유통기한이 다가오거나 모자란 약이 없어요</div>'}
   <div class="cols">
@@ -976,13 +1000,13 @@ function vDrugs() {
     </section>
     <section class="card stack" style="flex:999 1 640px;min-width:0"><div class="between"><h2 style="font-size:18px">재고</h2><button class="btn line" data-act="newDrug">새 약 추가</button></div>
       ${T.newDrug ? drugEditForm(T.newDrug, true) : ''}
-      <div class="scroll"><table class="t" style="min-width:760px"><thead><tr><th>약 이름</th><th style="text-align:right">남은 양</th><th>유통기한 (들어온 묶음별)</th><th>보관 위치</th><th>처치 때 줄이는 방식</th><th></th></tr></thead><tbody>
-      ${S.drugs.map((d) => { const tot = drugTotal(d); const low = d.min > 0 && tot < d.min; const lots = [...d.lots].sort((a, b) => a.exp.localeCompare(b.exp)); const locs = uniq(lots.map((l) => l.loc).filter(Boolean)); return T.editDrug === d.id ? `<tr><td colspan="6">${drugEditForm(T._draft, false)}</td></tr>` : `<tr><td><b>${esc(d.name)}</b><br><span class="xs muted">${esc(d.kind)} · 맞는 증상 ${esc(d.syms.map((s) => SYM_SHORT[s]).join('·') || '없음')}</span></td><td style="text-align:right;white-space:nowrap"><b style="font-size:16px;color:${low ? 'var(--or-d)' : 'var(--ink)'}">${tot}${esc(d.unit)}</b><br><span class="xs muted">최소 ${d.min}${esc(d.unit)}</span></td><td>${lots.length ? lots.map((l) => { const dl = daysLeft(l.exp); return `<div class="row" style="gap:8px;padding:2px 0" data-tip="${esc((l.loc ? '보관 위치 ' + l.loc + ' · ' : '') + (dl < 0 ? '기한이 지났어요' : dl + '일 남음'))}"><span>${kexp(l.exp)}</span><span class="xs muted">${l.qty}${esc(d.unit)}</span>${dl <= S.settings.warnDays ? `<b class="xs" style="color:${dl < 30 ? 'var(--or-d)' : 'var(--yel-d)'}">${dl < 0 ? '기한 지남' : dl + '일 남음'}</b>` : ''}<button class="link xs" data-act="lotOut" data-arg="${d.id}|${l.id}">폐기·빼기</button></div>`; }).join('') : '<span class="muted small">없음</span>'}</td><td class="${locs.length ? '' : 'muted'}">${esc(locs.join(', ') || '적지 않음')}</td><td class="muted small">${d.counted ? '1' + esc(d.unit) + '씩 줄이기' : '사용 횟수만 (통이 비면 빼기)'}</td><td><button class="link" data-act="editDrug" data-arg="${d.id}">고치기</button></td></tr>`; }).join('')}
+      <div class="scroll"><table class="t" style="min-width:760px"><thead><tr><th>약 이름</th><th style="text-align:right">남은 양</th><th>구입일 → 유통기한 (구입한 묶음별)</th><th>보관 위치</th><th>맞는 증상</th><th></th></tr></thead><tbody>
+      ${S.drugs.map((d) => { const tot = drugTotal(d); const low = d.min > 0 && tot < d.min; const lots = [...d.lots].sort((a, b) => a.exp.localeCompare(b.exp)); const locs = uniq(lots.map((l) => l.loc).filter(Boolean)); return T.editDrug === d.id ? `<tr><td colspan="6">${drugEditForm(T._draft, false)}</td></tr>` : `<tr><td><b>${esc(d.name)}</b><br><span class="xs muted">${esc(d.kind || '')}</span></td><td style="text-align:right;white-space:nowrap"><b style="font-size:16px;color:${low ? 'var(--or-d)' : 'var(--ink)'}">${tot}${esc(d.unit)}</b><br><span class="xs muted">최소 ${d.min}${esc(d.unit)}</span></td><td>${lots.length ? lots.map((l) => { const dl = daysLeft(l.exp); return `<div class="row" style="gap:8px;padding:2px 0" data-tip="${esc((l.loc ? '보관 위치 ' + l.loc + ' · ' : '') + (dl < 0 ? '기한이 지났어요' : dl + '일 남음'))}"><span>${l.buy ? `<span class="xs muted">${kbuy(l.buy)} 구입 →</span> ` : ''}<b>${kexp(l.exp)}까지</b></span><span class="xs muted">${l.qty}${esc(d.unit)}</span>${dl <= S.settings.warnDays ? `<b class="xs" style="color:${dl < 30 ? 'var(--or-d)' : 'var(--yel-d)'}">${dl < 0 ? '기한 지남' : dl + '일 남음'}</b>` : ''}<button class="link xs" data-act="lotOut" data-arg="${d.id}|${l.id}">빼기</button></div>`; }).join('') : '<span class="muted small">없음</span>'}</td><td class="${locs.length ? '' : 'muted'}">${esc(locs.join(', ') || '적지 않음')}</td><td class="small">${esc((d.cats || autoCats(d.name)).join(' · ') || '-')}</td><td><button class="link" data-act="editDrug" data-arg="${d.id}">고치기</button></td></tr>`; }).join('')}
       </tbody></table></div>
     </section>
   </div>
   ${T.intake === 'xls' && T.pur ? purPreview() : ''}
-  <section class="card stack"><h2 style="font-size:18px">들어오고 나간 기록 <span class="small muted" style="font-weight:400">처치 때 쓴 양은 저절로 적혀요</span></h2>
+  <section class="card stack"><h2 style="font-size:18px">들어오고 나간 기록 <span class="small muted" style="font-weight:400">입고하거나 뺀 기록이에요</span></h2>
   ${S.stockLog.length ? `<div class="scroll"><table class="t" style="min-width:620px"><thead><tr><th>때</th><th>약</th><th style="text-align:right">양</th><th>내용</th></tr></thead><tbody>${S.stockLog.slice(0, 40).map((l) => `<tr><td style="white-space:nowrap">${kdate(l.at)} ${hm(l.at)}</td><td>${esc(l.name)}</td><td style="text-align:right;font-weight:700;color:${l.delta > 0 ? 'var(--teal-d)' : 'var(--or-d)'}">${l.delta > 0 ? '+' : ''}${esc(l.qtyText)}</td><td>${esc(l.note)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="muted small">아직 기록이 없어요</div>'}</section>
   </div></main>`;
 }
@@ -991,20 +1015,20 @@ function drugEditForm(d, isNew) {
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
   <label class="f">약 이름<input id="dName" type="text" value="${esc(d.name)}" data-bind-drug="name"></label>
   <label class="f">종류<input id="dKind" type="text" value="${esc(d.kind)}" data-bind-drug="kind"></label>
-  <label class="f">단위<input id="dUnit" type="text" value="${esc(d.unit)}" data-bind-drug="unit" placeholder="정·매·포·개·병"></label>
-  <label class="f">최소 수량<input id="dMin" type="text" inputmode="numeric" value="${esc(d.min)}" data-bind-drug="min"></label></div>
-  <label class="check small"><input type="checkbox" ${d.counted ? 'checked' : ''} data-act="dCounted" style="width:18px;height:18px;accent-color:var(--teal)">처치 때 쓴 개수만큼 재고에서 줄이기 (끄면 사용 횟수만 적어요 · 겔·시럽·연고 등)</label>
-  <div class="small b muted">맞는 증상 (처치 화면에서 이 증상 칸에 약이 떠요)</div>
-  <div class="chips">${Object.keys(SYM).filter((s) => s !== 'etc').map((s) => `<button class="chip ${d.syms.includes(s) ? 'on' : ''}" data-act="dSym" data-arg="${s}">${SYM_SHORT[s]}</button>`).join('')}</div>
+  <label class="f">세는 단위<input id="dUnit" type="text" value="${esc(d.unit)}" data-bind-drug="unit" placeholder="개·상자·묶음"></label>
+  <label class="f">최소 수량 <span class="xs" style="font-weight:400">이보다 적으면 알려요</span><input id="dMin" type="text" inputmode="numeric" value="${esc(d.min)}" data-bind-drug="min"></label></div>
+  <div class="small b muted">맞는 증상 계통 <span style="font-weight:400">처치 칸에서 이 계통 증상을 고르면 이 약이 먼저 보여요</span></div>
+  <div class="chips">${SX_CATS.map((c) => { const on = (d.cats || autoCats(d.name)).includes(c); return `<button class="chip sm ${on ? 'on' : ''}" data-act="dCat" data-arg="${esc(c)}">${esc(c)}</button>`; }).join('')}</div>
   <div class="row"><button class="btn" data-act="dSave">${isNew ? '추가하기' : '저장'}</button><button class="link" data-act="dCancel">취소</button>${isNew ? '' : '<button class="link" style="color:var(--or-d)" data-act="dDelete">이 약 지우기</button>'}</div></div>`;
 }
 function purPreview() {
   const p = T.pur; const hdr = p.aoa[p.hdr] || [];
   const colSel = (key, label) => `<label class="f">${label}<select data-act-change="purCol" data-arg="${key}"><option value="-1">없음</option>${hdr.map((h, i) => `<option value="${i}" ${p.cols[key] === i ? 'selected' : ''}>${esc(h || (i + 1) + '번째 열')}</option>`).join('')}</select></label>`;
-  return `<section class="card stack" style="border:2px solid var(--teal)"><h2 style="font-size:18px">품의서에서 읽은 약 <span class="small muted" style="font-weight:400">확인하고 유통기한만 적어 주세요 (품의서에는 유통기한이 없어서 받은 상자를 보고 적어요)</span></h2>
+  return `<section class="card stack" style="border:2px solid var(--teal)"><h2 style="font-size:18px">품의서에서 읽은 약 <span class="small muted" style="font-weight:400">구입일을 확인하고, 받은 상자를 보고 유통기한(년·월)을 적어 주세요</span></h2>
+  <label class="f" style="max-width:220px">구입일 <span class="xs" style="font-weight:400">이 품의서로 산 약 모두에 들어가요</span><input type="date" value="${esc(p.buy || ymd(now()))}" data-bind-pur-buy="1"></label>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px"><label class="f">제목 줄<select data-act-change="purHdr">${p.aoa.slice(0, 15).map((r, i) => `<option value="${i}" ${p.hdr === i ? 'selected' : ''}>${i + 1}번째 줄: ${esc(r.filter(Boolean).slice(0, 3).join(' / ').slice(0, 30))}</option>`).join('')}</select></label>${colSel('name', '품명 열')}${colSel('spec', '규격 열')}${colSel('qty', '수량 열')}</div>
-  <div class="scroll"><table class="t" style="min-width:920px"><thead><tr><th></th><th>품의서 품명 · 규격</th><th style="text-align:right">품의서 수량</th><th>약 목록과 짝</th><th style="text-align:right">들어갈 양</th><th>유통기한</th><th>보관 위치 (선택)</th></tr></thead><tbody>
-  ${p.rows.map((r, i) => { const d = S.drugs.find((x) => x.id === r.match); return `<tr><td><input type="checkbox" ${r.use ? 'checked' : ''} data-act="purUse" data-arg="${i}" aria-label="이 줄 넣기" style="width:18px;height:18px;accent-color:var(--teal)"></td><td><b>${esc(r.item)}</b><br><span class="xs muted">${esc(r.spec)}</span></td><td style="text-align:right">${esc(r.qtyRaw)}</td><td><select data-act-change="purMatch" data-arg="${i}"><option value="__new" ${r.match === '__new' ? 'selected' : ''}>새 약으로 추가</option>${S.drugs.map((x) => `<option value="${x.id}" ${r.match === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></td><td style="text-align:right;white-space:nowrap"><input type="text" inputmode="numeric" value="${r.into}" data-bind-pur="${i}|into" style="width:70px;text-align:right"> ${esc(d ? d.unit : r.unit)}</td><td><input type="date" value="${esc(r.exp)}" data-bind-pur="${i}|exp" style="border-color:${r.exp || !r.use ? 'var(--line)' : 'var(--or)'}"></td><td><input type="text" value="${esc(r.loc)}" placeholder="예: 약장 2칸" data-bind-pur="${i}|loc" style="width:130px"></td></tr>`; }).join('')}
+  <div class="scroll"><table class="t" style="min-width:920px"><thead><tr><th></th><th>품의서 품명 · 규격</th><th style="text-align:right">품의서 수량</th><th>약 목록과 짝</th><th style="text-align:right">들어갈 양</th><th>유통기한 (년·월)</th><th>보관 위치 (선택)</th></tr></thead><tbody>
+  ${p.rows.map((r, i) => { const d = S.drugs.find((x) => x.id === r.match); return `<tr><td><input type="checkbox" ${r.use ? 'checked' : ''} data-act="purUse" data-arg="${i}" aria-label="이 줄 넣기" style="width:18px;height:18px;accent-color:var(--teal)"></td><td><b>${esc(r.item)}</b><br><span class="xs muted">${esc(r.spec)}</span></td><td style="text-align:right">${esc(r.qtyRaw)}</td><td><select data-act-change="purMatch" data-arg="${i}"><option value="__new" ${r.match === '__new' ? 'selected' : ''}>새 약으로 추가</option>${S.drugs.map((x) => `<option value="${x.id}" ${r.match === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></td><td style="text-align:right;white-space:nowrap"><input type="text" inputmode="numeric" value="${r.into}" data-bind-pur="${i}|into" style="width:70px;text-align:right"> ${esc(d ? d.unit : r.unit)}</td><td><input type="month" value="${esc(r.exp)}" data-bind-pur="${i}|exp" style="border-color:${r.exp || !r.use ? 'var(--line)' : 'var(--or)'}"></td><td><input type="text" value="${esc(r.loc)}" placeholder="예: 약장 2칸" data-bind-pur="${i}|loc" style="width:130px"></td></tr>`; }).join('')}
   </tbody></table></div>
   <div class="between" style="align-items:center"><div class="small b" style="color:var(--or-d)">${p.rows.filter((r) => r.use && !r.exp).length ? '유통기한을 적지 않은 줄이 ' + p.rows.filter((r) => r.use && !r.exp).length + '개 있어요' : ''}</div><div class="row"><button class="btn ghost" data-act="purCancel">취소</button><button class="btn" data-act="purImport">${p.rows.filter((r) => r.use).length}가지 한꺼번에 입고</button></div></div></section>`;
 }
@@ -1288,10 +1312,8 @@ function buildPurRows() {
     const qtyRaw = String(r[qty] ?? '').trim(); const qn = parseFloat(qtyRaw.replace(/[^0-9.]/g, '')); if (!qn) return;
     const sp = spec >= 0 ? String(r[spec] ?? '').trim() : '';
     const d = matchDrug(item);
-    const m = (sp + ' ' + item).match(/(\d+)\s*(정|매|포|개|병|캡슐|T)\s*(\/|입|씩)/);
-    let into = qn; let unit = '개';
-    if (m) { unit = m[2] === 'T' ? '정' : m[2]; if (!d || d.unit === unit) into = qn * Number(m[1]); }
-    p.rows.push({ item, spec: sp, qtyRaw, match: d ? d.id : '__new', into: Math.round(into), unit: d ? d.unit : unit, exp: '', loc: '', use: true });
+    // 품의서 수량(개)을 그대로 상자·묶음 수로 넣어요
+    p.rows.push({ item, spec: sp, qtyRaw, match: d ? d.id : '__new', into: Math.round(qn), unit: d ? d.unit : '개', exp: '', loc: '', use: true });
   });
 }
 function deduct(d, qty, note) {
@@ -1315,8 +1337,9 @@ function sampleData(name) {
   s.schedule = { 1: { 3: '3학년 2반 교실', 4: '5학년 1반 교실' }, 2: { 2: '6학년 1반 교실', 5: '4학년 1반 교실' }, 3: { 1: '4학년 2반 교실', 4: '3학년 1반 교실' }, 4: { 3: '6학년 2반 교실' }, 5: { 2: '5학년 2반 교실' } };
   const t0 = now(); const day = 86400000; const d0 = (n) => ymd(t0 + n * day);
   const lots = { acet: [[d0(55), 18, '약장 2칸'], [d0(280), 30, '약장 2칸']], ibu: [[d0(130), 2, '약 냉장고']], keto: [[d0(430), 35, '처치대 서랍']], gel: [[d0(27), 1, '']], antacid: [[d0(190), 20, '약장 3칸']], digest: [[d0(340), 30, '약장 3칸']], oint: [[d0(220), 4, '처치대 서랍']], povi: [[d0(310), 2, '']] };
-  s.drugs.forEach((d) => { d.lots = (lots[d.id] || []).map(([exp, qty, loc]) => ({ id: uid(), exp, qty, loc })); });
-  s.stockLog.push({ at: t0 - 3 * day, did: 'acet', name: '아세트아미노펜 정', delta: 30, qtyText: '30정', note: '입고 · 약장 2칸' });
+  s.drugs = DEFAULT_DRUGS();
+  s.drugs.forEach((d) => { d.lots = (lots[d.id] || []).map(([exp, qty, loc]) => ({ id: uid(), buy: ymd(t0 - 60 * day), exp, qty: Math.max(1, Math.round(qty / 10)), loc })); });
+  s.stockLog.push({ at: t0 - 3 * day, did: 'acet', name: '아세트아미노펜 정', delta: 30, qtyText: '3개', note: '입고 · 약장 2칸' });
   const symW = [['bruise', 22], ['cut', 18], ['stomach', 12], ['head', 10], ['fever', 7], ['sprain', 8], ['nausea', 4], ['nose', 5], ['cough', 5], ['muscle', 4], ['period', 3], ['bug', 2], ['eye', 2], ['tooth', 1], ['dizzy', 2], ['etc', 1]];
   const wsum = sum(symW.map((x) => x[1]));
   const pickSym = () => { let r = R() * wsum; for (const [k, w] of symW) { r -= w; if (r <= 0) return k; } return 'etc'; };
@@ -1466,13 +1489,14 @@ const A = {
   doPrint: () => { try { window.print(); } catch (e) { toast('이 화면에서는 인쇄할 수 없어요'); } },
   // 약품
   intakeMode: (a) => { T.intake = a; render(); },
-  intakeOne: () => { const d = S.drugs.find((x) => x.id === T.form.drug) || S.drugs[0]; const q = parseInt(T.form.qty, 10); if (!d || !q || !T.form.exp) { toast('양과 유통기한을 적어 주세요'); return; } d.lots.push({ id: uid(), exp: T.form.exp, qty: q, loc: T.form.loc.trim() }); S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: q, qtyText: q + d.unit, note: `입고 · 유통기한 ${kexp(T.form.exp)}${T.form.loc ? ' · ' + T.form.loc : ''}` }); T.form.qty = ''; T.form.loc = ''; save(); render(); toast(`${d.name} ${q}${d.unit} 입고했어요`); },
-  lotOut: async (a) => { const [did, lid] = a.split('|'); const d = S.drugs.find((x) => x.id === did); const l = d && d.lots.find((x) => x.id === lid); if (!l) return; const v = await ask('폐기·빼기', `${esc(d.name)} ${kexp(l.exp)} 묶음에서 뺄 양을 적어 주세요 (지금 ${l.qty}${esc(d.unit)}). 다 빼려면 그대로 두세요.`, '빼기', true, { ph: String(l.qty), mode: 'numeric' }); if (v === null) return; const q = Math.min(l.qty, parseInt(v, 10) || l.qty); l.qty -= q; d.lots = d.lots.filter((x) => x.qty > 0); S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: -q, qtyText: q + d.unit, note: '폐기·빼기 · ' + kexp(l.exp) }); save(); render(); },
-  newDrug: () => { T.newDrug = { id: uid(), name: '', kind: '', unit: '개', min: 0, counted: true, syms: [], lots: [] }; T.editDrug = null; render(); },
+  intakeOne: () => { const d = S.drugs.find((x) => x.id === T.form.drug) || S.drugs[0]; const q = parseInt(T.form.qty, 10); if (!d || !q || !T.form.exp) { toast('양과 유통기한을 적어 주세요'); return; } const buy = T.form.buy || ymd(now()); const exp = monthEnd(T.form.exp); d.lots.push({ id: uid(), buy, exp, qty: q, loc: T.form.loc.trim() }); S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: q, qtyText: q + d.unit, note: `입고 · ${kbuy(buy)} 구입 · ${kexp(exp)}까지${T.form.loc ? ' · ' + T.form.loc : ''}` }); T.form.qty = ''; T.form.loc = ''; save(); render(); toast(`${d.name} ${q}${d.unit} 입고했어요`); },
+  lotOut: async (a) => { const [did, lid] = a.split('|'); const d = S.drugs.find((x) => x.id === did); const l = d && d.lots.find((x) => x.id === lid); if (!l) return; const v = await ask('빼기', `다 쓰거나 버린 양을 빼요. ${esc(d.name)} ${kexp(l.exp)}까지 묶음에서 뺄 양을 적어 주세요 (지금 ${l.qty}${esc(d.unit)}). 다 빼려면 그대로 두세요.`, '빼기', true, { ph: String(l.qty), mode: 'numeric' }); if (v === null) return; const q = Math.min(l.qty, parseInt(v, 10) || l.qty); l.qty -= q; d.lots = d.lots.filter((x) => x.qty > 0); S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: -q, qtyText: q + d.unit, note: '빼기 · ' + kexp(l.exp) + '까지 묶음' }); save(); render(); },
+  newDrug: () => { T.newDrug = { id: uid(), name: '', kind: '', unit: '개', min: 0, counted: false, syms: [], lots: [] }; T.editDrug = null; render(); },
   editDrug: (id) => { T.editDrug = id; T.newDrug = null; T._draft = JSON.parse(JSON.stringify(S.drugs.find((d) => d.id === id))); render(); },
   dCounted: () => { const d = T.newDrug || T._draft; d.counted = !d.counted; },
+  dCat: (c) => { const d = T.newDrug || T._draft; d.cats = d.cats || autoCats(d.name); d.cats = d.cats.includes(c) ? d.cats.filter((x) => x !== c) : [...d.cats, c]; render(); },
   dSym: (s) => { const d = T.newDrug || T._draft; d.syms = d.syms.includes(s) ? d.syms.filter((x) => x !== s) : [...d.syms, s]; syncDraftView(); },
-  dSave: () => { const d = T.newDrug || T._draft; if (!d.name.trim()) { toast('약 이름을 적어 주세요'); return; } d.min = parseInt(d.min, 10) || 0; if (T.newDrug) S.drugs.push(d); else { const i = S.drugs.findIndex((x) => x.id === d.id); S.drugs[i] = d; } T.newDrug = null; T.editDrug = null; save(); render(); },
+  dSave: () => { const d = T.newDrug || T._draft; if (!d.name.trim()) { toast('약 이름을 적어 주세요'); return; } d.min = parseInt(d.min, 10) || 0; if (!d.cats) d.cats = autoCats(d.name); if (T.newDrug) S.drugs.push(d); else { const i = S.drugs.findIndex((x) => x.id === d.id); S.drugs[i] = d; } T.newDrug = null; T.editDrug = null; save(); render(); },
   dCancel: () => { T.newDrug = null; T.editDrug = null; render(); },
   dDelete: async () => { const d = T._draft; const ok = await ask('이 약을 지울까요?', `${esc(d.name)}와 남은 재고 기록이 목록에서 사라져요. 지난 처치 기록에 적힌 약 이름은 그대로 남아요.`, '지우기', true); if (!ok) return; S.drugs = S.drugs.filter((x) => x.id !== d.id); T.editDrug = null; save(); render(); },
   purUse: (i) => { T.pur.rows[i].use = !T.pur.rows[i].use; render(); },
@@ -1480,8 +1504,9 @@ const A = {
   purImport: () => {
     const rows = T.pur.rows.filter((r) => r.use);
     if (rows.some((r) => !r.exp)) { toast('유통기한을 모두 적어 주세요'); return; }
-    rows.forEach((r) => { let d = S.drugs.find((x) => x.id === r.match); if (!d) { d = { id: uid(), name: r.item, kind: '', unit: r.unit || '개', min: 0, counted: true, syms: [], lots: [] }; S.drugs.push(d); } const q = parseInt(r.into, 10) || 0; if (!q) return; d.lots.push({ id: uid(), exp: r.exp, qty: q, loc: r.loc }); S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: q, qtyText: q + d.unit, note: `품의서 입고 · 유통기한 ${kexp(r.exp)}${r.loc ? ' · ' + r.loc : ''}` }); });
-    S.settings.purMap = { hdrText: (T.pur.aoa[T.pur.hdr] || []).join('|'), cols: T.pur.cols }; T.pur = null; save(); render(); toast(`${rows.length}가지를 입고했어요. 새로 생긴 약은 '고치기'에서 맞는 증상을 골라 주세요`);
+    const buy = T.pur.buy || ymd(now());
+    rows.forEach((r) => { let d = S.drugs.find((x) => x.id === r.match); if (!d) { d = { id: uid(), name: r.item, kind: r.spec || '', unit: r.unit || '개', min: 0, counted: false, cats: autoCats(r.item), syms: [], lots: [] }; S.drugs.push(d); } const q = parseInt(r.into, 10) || 0; if (!q) return; const exp = monthEnd(r.exp); d.lots.push({ id: uid(), buy, exp, qty: q, loc: r.loc }); S.stockLog.unshift({ at: now(), did: d.id, name: d.name, delta: q, qtyText: q + d.unit, note: `품의서 입고 · ${kbuy(buy)} 구입 · ${kexp(exp)}까지${r.loc ? ' · ' + r.loc : ''}` }); });
+    S.settings.purMap = { hdrText: (T.pur.aoa[T.pur.hdr] || []).join('|'), cols: T.pur.cols }; T.pur = null; save(); render(); toast(`${rows.length}가지를 입고했어요. 맞는 증상 계통은 약 이름으로 짐작해 넣었어요 · '고치기'에서 바꿀 수 있어요`);
   },
   // 통계
   statMonth: (i) => { T.statMonth = Number(i); render(); },
@@ -1529,7 +1554,7 @@ const CH = {
   purCol: (el) => { T.pur.cols[el.dataset.arg] = Number(el.value); buildPurRows(); render(); },
   purHdr: (el) => { T.pur.hdr = Number(el.value); guessPurCols(); buildPurRows(); render(); },
   purMatch: (el) => { const r = T.pur.rows[Number(el.dataset.arg)]; r.match = el.value; const d = S.drugs.find((x) => x.id === el.value); if (d) r.unit = d.unit; render(); },
-  purFile: async (el) => { const f = el.files[0]; if (!f) return; try { const aoa = await readTable(f); T.pur = { file: f.name, aoa, hdr: Math.max(0, aoa.findIndex((r) => r.some((c) => /품\s*명|품\s*목/.test(String(c))))), cols: {}, rows: [] }; guessPurCols(); buildPurRows(); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } },
+  purFile: async (el) => { const f = el.files[0]; if (!f) return; try { const aoa = await readTable(f); T.pur = { file: f.name, aoa, hdr: Math.max(0, aoa.findIndex((r) => r.some((c) => /품\s*명|품\s*목|^내\s*용$/.test(String(c).trim())))), cols: {}, rows: [] }; guessPurCols(); buildPurRows(); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } },
   spFile: async (el) => { const f = el.files[0]; if (!f) return; try { T.spImport = parseSpecial(await readTable(f)); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } el.value = ''; },
   rosterFile: async (el) => { const f = el.files[0]; if (!f) return; try { T.rosterPreview = parseRoster(await readTable(f)); render(); } catch (e) { toast(e.message || '파일을 읽지 못했어요'); } },
   restore: async (el) => { const f = el.files[0]; if (!f) return; try { const s = JSON.parse(await f.text()); if (!s.school) throw new Error(); const ok = await ask('백업 파일로 되살릴까요?', '연결된 모든 기기의 자료가 백업 파일 내용으로 바뀌어요.', '되살리기', true); if (!ok) return; S = Object.assign(blankState(), s); save(); render(); toast('되살렸어요'); } catch (e) { toast('똑똑! 백업 파일이 아니에요'); } }
@@ -1539,7 +1564,7 @@ function guessPurCols() {
   const saved = S.settings.purMap && S.settings.purMap.hdrText === (p.aoa[p.hdr] || []).join('|') ? S.settings.purMap.cols : null;
   if (saved) { p.cols = { ...saved }; return; }
   const f = (re) => hdr.findIndex((c) => re.test(c));
-  p.cols = { name: Math.max(0, f(/품명|품목|물품명|약품명/)), spec: f(/규격/), qty: Math.max(0, f(/수량/)) };
+  p.cols = { name: Math.max(0, f(/품명|품목|물품명|약품명|^내용$/)), spec: f(/규격/), qty: Math.max(0, f(/수량/)) };
 }
 function syncDraftView() { render(); }
 
@@ -1567,6 +1592,7 @@ document.addEventListener('input', (e) => {
   if (d.bindRoot) { T[d.bindRoot] = el.value; if (d.live) render(); return; }
   if (d.bindForm) { T.form[d.bindForm] = el.value; if (d.bindForm === 'drug') render(); return; }
   if (d.bindDrug) { (T.newDrug || T._draft)[d.bindDrug] = el.value; return; }
+  if (d.bindPurBuy) { T.pur.buy = el.value; return; }
   if (d.bindPur) { const [i, k] = d.bindPur.split('|'); T.pur.rows[Number(i)][k] = el.value; return; }
   if (d.bindYe) { T.ye[d.bindYe] = el.value; const btn = document.querySelector('[data-act="yeClose"]'); if (btn) btn.disabled = el.value.trim() !== `${S.school.year} 마감`; return; }
   if (d.bindS) { const [a, b] = d.bindS.split('.'); S[a][b] = el.value; save(); return; }
